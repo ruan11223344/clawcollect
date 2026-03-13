@@ -59,6 +59,10 @@ export interface ResponsesPage {
   offset: number;
 }
 
+export interface FormsPage {
+  forms: RemoteForm[];
+}
+
 export class OnlineClient {
   private readonly baseUrl: string;
   private readonly token: string;
@@ -134,6 +138,13 @@ export class OnlineClient {
 
   async ensureResultsLink(formId: string): Promise<RemoteResultsLink> {
     return this.request("POST", `/api/forms/${formId}/results-link`);
+  }
+
+  async listForms(options?: { status?: string }): Promise<FormsPage> {
+    const params = new URLSearchParams();
+    if (options?.status) params.set("status", options.status);
+    const qs = params.toString();
+    return this.request("GET", `/api/forms${qs ? `?${qs}` : ""}`);
   }
 
   async getForm(formId: string): Promise<{ form: RemoteForm }> {

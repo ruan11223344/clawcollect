@@ -16,15 +16,22 @@ import type {
   OnlineCollection,
 } from "./types";
 
+const DEFAULT_HOSTED_API_URL = "https://collect.dorapush.com";
+const DEFAULT_HOSTED_SIGNUP_URL = `${DEFAULT_HOSTED_API_URL}/signup`;
+const ONLINE_CONFIG_PATH_PREFIX = "plugins.entries.clawcollect.config.online";
+
 function formatHelp(): string {
   return [
     "ClawCollect — form collection bridge:",
     "",
     "/collect",
     "/collect help",
+    "/collect connect",
     "/collect status",
     "/collect doctor",
     "",
+    "/collect connect token <cc_tok_...>",
+    "/collect connect check",
     "/collect form open <title>",
     "/collect form status",
     "/collect form summary",
@@ -35,6 +42,7 @@ function formatHelp(): string {
 function renderQuickActions(): string {
   return [
     "Quick actions:",
+    "- /collect connect",
     "- /collect form open BBQ Friday",
     "- /collect form status",
     "- /collect doctor",
@@ -78,6 +86,7 @@ function renderDoctor(
     `- schema version: ${store.version}`,
     `- online service: ${pluginConfig.online?.enabled ? "enabled" : "not configured"}`,
     `- online API URL: ${pluginConfig.online?.apiUrl ?? "(not set)"}`,
+    `- online API token: ${pluginConfig.online?.apiToken?.trim() ? "configured" : "not set"}`,
     `- active form collections here: ${activeHere}`,
     `- active form collections total: ${totalOpen}`,
     `- total form collections: ${store.onlineCollections.length}`,
@@ -120,6 +129,10 @@ export function registerClawCollectCommands(
         return textReply(renderDoctor(scopeKey, stateDir, pluginConfig, store));
       }
 
+      if (section === "connect") {
+        return handleConnectCommand(pluginConfig, sectionArgs);
+      }
+
       if (section === "form") {
         return handleFormCommand(
           pluginConfig,
@@ -140,13 +153,13 @@ function resolveOnlineClient(
   pluginConfig: ClawCollectPluginConfig,
 ): OnlineClient | string {
   if (!pluginConfig.online?.enabled) {
-    return "Form collection is not enabled.\nAdd to your config:\n  online: { enabled: true, apiUrl: \"...\", apiToken: \"...\" }";
+    return "Form collection is not enabled.\nRun /collect connect for hosted setup, or add online.enabled/apiUrl/apiToken to plugin config.";
   }
   if (!pluginConfig.online.apiUrl?.trim()) {
-    return "Missing online.apiUrl in plugin config.";
+    return "Missing online.apiUrl in plugin config.\nRun /collect connect token <cc_tok_...> for hosted setup, or set a self-hosted API URL.";
   }
   if (!pluginConfig.online.apiToken?.trim()) {
-    return "Missing online.apiToken in plugin config.\nCreate one via POST /api/tokens on your online service.";
+    return "Missing online.apiToken in plugin config.\nRun /collect connect for hosted setup, or create one on your self-hosted service.";
   }
   return new OnlineClient({
     apiUrl: pluginConfig.online.apiUrl,
@@ -172,6 +185,136 @@ function formatOnlineError(err: unknown): string {
 
 function resolveOnlineBaseUrl(pluginConfig: ClawCollectPluginConfig): string {
   return pluginConfig.online!.apiUrl!.replace(/\/+$/, "");
+}
+
+function quoteConfigValue(value: string): string {
+  return JSON.stringify(value);
+}
+
+function renderConfigCommands(apiUrl: string, apiToken: string): string[] {
+  return [
+    `/config set plugins.entries.clawcollect.enabled true`,
+    `/config set ${ONLINE_CONFIG_PATH_PREFIX}.enabled true`,
+    `/config set ${ONLINE_CONFIG_PATH_PREFIX}.apiUrl ${quoteConfigValue(apiUrl)}`,
+    `/config set ${ONLINE_CONFIG_PATH_PREFIX}.apiToken ${quoteConfigValue(apiToken)}`,
+    "/restart",
+    "/collect connect check",
+  ];
+}
+
+function renderHostedConnectGuide(): string {
+  return [
+    "ClawCollect hosted setup:",
+    `1. Open ${DEFAULT_HOSTED_SIGNUP_URL}`,
+    "2. Copy your hosted apiToken",
+    "3. Run: /collect connect token <cc_tok_...>",
+    "",
+    "Advanced self-hosted setup:",
+    "- /collect connect custom <apiUrl> <cc_tok_...>",
+  ].join("\n");
+}
+
+function renderConnectCommandsReply(apiUrl: string, apiToken: string): string {
+  return [
+    "Run these commands in OpenClaw chat:",
+    ...renderConfigCommands(apiUrl, apiToken),
+    "",
+    "This writes your plugin config, restarts the daemon, and then checks connectivity.",
+  ].join("\n");
+}
+
+async function handleConnectCommand(
+  pluginConfig: ClawCollectPluginConfig,
+  args: string,
+): Promise<{ text: string }> {
+  const trimmed = args.trim();
+  if (!trimmed || trimmed === "help" || trimmed === "hosted") {
+    if (pluginConfig.online?.enabled && pluginConfig.online.apiUrl?.trim() && pluginConfig.online.apiToken?.trim()) {
+      return textReply(
+        [
+          "ClawCollect already has online config:",
+          `- apiUrl: ${pluginConfig.online.apiUrl}`,
+          "- apiToken: configured",
+          "",
+          "Run /collect connect check to verify access, or /collect form open <title> to start collecting.",
+          "",
+          renderHostedConnectGuide(),
+        ].join("\n"),
+      );
+    }
+    return textReply(renderHostedConnectGuide());
+  }
+
+  if (trimmed.startsWith("cc_tok_")) {
+    return textReply(renderConnectCommandsReply(DEFAULT_HOSTED_API_URL, trimmed));
+  }
+
+  const { head: action, tail } = splitFirstWord(trimmed);
+
+  if (action === "token") {
+    const token = tail.trim();
+    if (!token) {
+      return textReply("Usage: /collect connect token <cc_tok_...>");
+    }
+    return textReply(renderConnectCommandsReply(DEFAULT_HOSTED_API_URL, token));
+  }
+
+  if (action === "custom") {
+    const { head: apiUrl, tail: tokenTail } = splitFirstWord(tail);
+    const apiToken = tokenTail.trim();
+    if (!apiUrl || !apiToken) {
+      return textReply("Usage: /collect connect custom <apiUrl> <cc_tok_...>");
+    }
+    return textReply(renderConnectCommandsReply(apiUrl, apiToken));
+  }
+
+  if (action === "check") {
+    const client = resolveOnlineClient(pluginConfig);
+    if (typeof client === "string") {
+      return textReply(
+        [
+          "ClawCollect is not connected yet.",
+          client,
+          "",
+          renderHostedConnectGuide(),
+        ].join("\n"),
+      );
+    }
+
+    try {
+      const page = await client.listForms();
+      return textReply(
+        [
+          "ClawCollect connection is ready.",
+          `- apiUrl: ${resolveOnlineBaseUrl(pluginConfig)}`,
+          "- auth: ok",
+          `- forms visible in this workspace: ${page.forms.length}`,
+          "",
+          "Next: /collect form open BBQ Friday",
+        ].join("\n"),
+      );
+    } catch (err) {
+      return textReply(
+        [
+          "ClawCollect connect check failed.",
+          formatOnlineError(err),
+          "",
+          "If you just signed up for hosted access, run /collect connect token <cc_tok_...> with your latest token.",
+        ].join("\n"),
+      );
+    }
+  }
+
+  return textReply(
+    [
+      "Unknown connect action.",
+      "Try:",
+      "/collect connect",
+      "/collect connect token <cc_tok_...>",
+      "/collect connect custom <apiUrl> <cc_tok_...>",
+      "/collect connect check",
+    ].join("\n"),
+  );
 }
 
 async function tryResolveResultsUrl(
@@ -213,12 +356,17 @@ async function handleFormCommand(
     return textReply(
       [
         "Form collection commands:",
+        "/collect connect",
+        "/collect connect token <cc_tok_...>",
+        "/collect connect check",
+        "",
         "/collect form open <title>",
         "/collect form status",
         "/collect form summary",
         "/collect form close",
         "",
         "Requires online config: online.enabled, online.apiUrl, online.apiToken",
+        "Fastest hosted path: /collect connect",
       ].join("\n"),
     );
   }

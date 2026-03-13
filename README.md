@@ -17,6 +17,7 @@ The recommended product shape is `hosted by default`, with `self-hosted` availab
 - The plugin only needs an `apiUrl` and `apiToken`
 - Example hosted service URL: `https://collect.dorapush.com`
 - Self-serve signup is available at `https://collect.dorapush.com/signup`
+- Fastest chat flow: `/collect connect` -> `/collect connect token <cc_tok_...>` -> `/collect connect check`
 
 ### Self-hosted mode
 
@@ -81,6 +82,9 @@ In self-hosted mode, start the online service and run `POST /api/tokens`.
 ```text
 /collect              — show status and quick actions
 /collect help         — show available commands
+/collect connect      — show hosted setup steps
+/collect connect token <cc_tok_...> — generate exact /config commands
+/collect connect check — verify hosted/self-hosted connectivity
 /collect status       — show active form collections
 /collect doctor       — show diagnostics
 
@@ -92,11 +96,15 @@ In self-hosted mode, start the online service and run `POST /api/tokens`.
 
 ## Usage flow
 
-1. `/collect form open BBQ March 30` — creates a form on your configured online service, publishes it, and returns a public link plus a collector results page link.
-2. Share the link with participants. They submit responses via the web form (no auth required).
-3. `/collect form status` — check how many responses have come in and reopen the results page.
-4. `/collect form summary` — see accepted responses as a text summary in chat.
-5. `/collect form close` — close the form so no more responses are accepted.
+1. `/collect connect` — shows the hosted signup link and the shortest connection path.
+2. Sign up at `https://collect.dorapush.com/signup`, then copy your `apiToken`.
+3. `/collect connect token <cc_tok_...>` — generates exact `/config set ...` commands plus `/restart`.
+4. `/collect connect check` — verifies the plugin can reach your hosted workspace.
+5. `/collect form open BBQ March 30` — creates a form on your configured online service, publishes it, and returns a public link plus a collector results page link.
+6. Share the link with participants. They submit responses via the web form (no auth required).
+7. `/collect form status` — check how many responses have come in and reopen the results page.
+8. `/collect form summary` — see accepted responses as a text summary in chat.
+9. `/collect form close` — close the form so no more responses are accepted.
 
 ## Online service
 
