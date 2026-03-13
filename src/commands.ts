@@ -1,8 +1,12 @@
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 
 import {
   makeId,
   nowIso,
+  splitPipeArgs,
   splitFirstWord,
   textReply,
 } from "./helpers";
@@ -19,6 +23,8 @@ import type {
 const DEFAULT_HOSTED_API_URL = "https://collect.dorapush.com";
 const DEFAULT_HOSTED_SIGNUP_URL = `${DEFAULT_HOSTED_API_URL}/signup`;
 const ONLINE_CONFIG_PATH_PREFIX = "plugins.entries.clawcollect.config.online";
+const CONNECT_TOKEN_PATTERN = /\bcc_tok_[A-Za-z0-9]+\b/;
+const execFileAsync = promisify(execFile);
 
 function formatHelp(): string {
   return [
@@ -30,6 +36,7 @@ function formatHelp(): string {
     "/collect status",
     "/collect doctor",
     "",
+    "/collect connect hosted <workspace name> | <owner email> | [owner name] | [signup code]",
     "/collect connect token <cc_tok_...>",
     "/collect connect check",
     "/collect form open <title>",
@@ -130,7 +137,11 @@ export function registerClawCollectCommands(
       }
 
       if (section === "connect") {
-        return handleConnectCommand(pluginConfig, sectionArgs);
+        return handleConnectCommand(
+          pluginConfig,
+          sectionArgs,
+          commandCtx.isAuthorizedSender,
+        );
       }
 
       if (section === "form") {
@@ -191,6 +202,57 @@ function quoteConfigValue(value: string): string {
   return JSON.stringify(value);
 }
 
+function normalizeConfiguredApiUrl(value: string): string {
+  return value.trim().replace(/\/+$/, "");
+}
+
+function normalizeDetectedApiUrl(value: string): string {
+  try {
+    return new URL(value.trim()).origin;
+  } catch {
+    return normalizeConfiguredApiUrl(value);
+  }
+}
+
+function extractApiTokenFromText(input: string): string | null {
+  const keyedMatch = input.match(
+    /(?:apiToken|api_token)\s*[:=]\s*["']?(cc_tok_[A-Za-z0-9]+)["']?/i,
+  );
+  if (keyedMatch?.[1]) {
+    return keyedMatch[1];
+  }
+  return input.match(CONNECT_TOKEN_PATTERN)?.[0] ?? null;
+}
+
+function extractApiUrlFromText(input: string): string | null {
+  const keyedMatch = input.match(
+    /(?:apiUrl|api_url)\s*[:=]\s*["']?(https?:\/\/[^\s"'`,}<>]+)["']?/i,
+  );
+  if (keyedMatch?.[1]) {
+    return normalizeConfiguredApiUrl(keyedMatch[1]);
+  }
+
+  const firstUrl = input.match(/https?:\/\/[^\s"'`<>]+/i)?.[0];
+  if (!firstUrl) {
+    return null;
+  }
+  return normalizeDetectedApiUrl(firstUrl);
+}
+
+function parseConnectConfigInput(
+  input: string,
+): { apiUrl: string; apiToken: string } | null {
+  const apiToken = extractApiTokenFromText(input);
+  if (!apiToken) {
+    return null;
+  }
+
+  return {
+    apiUrl: extractApiUrlFromText(input) ?? DEFAULT_HOSTED_API_URL,
+    apiToken,
+  };
+}
+
 function renderConfigCommands(apiUrl: string, apiToken: string): string[] {
   return [
     `/config set plugins.entries.clawcollect.enabled true`,
@@ -205,9 +267,9 @@ function renderConfigCommands(apiUrl: string, apiToken: string): string[] {
 function renderHostedConnectGuide(): string {
   return [
     "ClawCollect hosted setup:",
-    `1. Open ${DEFAULT_HOSTED_SIGNUP_URL}`,
-    "2. Copy your hosted apiToken",
-    "3. Run: /collect connect token <cc_tok_...>",
+    `1. Fast path in chat: /collect connect hosted <workspace name> | <owner email>`,
+    `2. Browser fallback: open ${DEFAULT_HOSTED_SIGNUP_URL}`,
+    "3. Paste the signup success config block into: /collect connect <...>",
     "",
     "Advanced self-hosted setup:",
     "- /collect connect custom <apiUrl> <cc_tok_...>",
@@ -223,9 +285,191 @@ function renderConnectCommandsReply(apiUrl: string, apiToken: string): string {
   ].join("\n");
 }
 
+async function verifyOnlineConfig(config: {
+  apiUrl: string;
+  apiToken: string;
+}): Promise<number> {
+  const client = new OnlineClient(config);
+  const page = await client.listForms();
+  return page.forms.length;
+}
+
+async function runOpenClawCli(args: string[]): Promise<void> {
+  const candidates: Array<{ file: string; args: string[] }> = [
+    { file: "openclaw", args },
+  ];
+
+  if (process.argv[1]?.trim()) {
+    candidates.push({
+      file: process.execPath,
+      args: [process.argv[1], ...args],
+    });
+  }
+
+  let lastError: unknown = null;
+  for (const candidate of candidates) {
+    try {
+      await execFileAsync(candidate.file, candidate.args, {
+        env: process.env,
+        timeout: 20_000,
+      });
+      return;
+    } catch (error) {
+      lastError = error;
+      const code =
+        typeof error === "object" && error && "code" in error
+          ? String((error as { code?: unknown }).code)
+          : "";
+      if (code === "ENOENT") {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw lastError ?? new Error("OpenClaw CLI is not available");
+}
+
+async function applyOnlineConfigToOpenClaw(config: {
+  apiUrl: string;
+  apiToken: string;
+}): Promise<void> {
+  await runOpenClawCli([
+    "config",
+    "set",
+    "--strict-json",
+    "plugins.entries.clawcollect.enabled",
+    JSON.stringify(true),
+  ]);
+  await runOpenClawCli([
+    "config",
+    "set",
+    "--strict-json",
+    ONLINE_CONFIG_PATH_PREFIX,
+    JSON.stringify({
+      enabled: true,
+      apiUrl: config.apiUrl,
+      apiToken: config.apiToken,
+    }),
+  ]);
+}
+
+async function signupHostedWorkspace(input: {
+  workspaceName: string;
+  ownerEmail: string;
+  ownerName?: string;
+  signupCode?: string;
+}): Promise<{
+  workspaceName: string;
+  ownerEmail: string;
+  apiUrl: string;
+  apiToken: string;
+}> {
+  const body = new URLSearchParams();
+  body.set("workspaceName", input.workspaceName);
+  body.set("ownerEmail", input.ownerEmail);
+  if (input.ownerName?.trim()) {
+    body.set("ownerName", input.ownerName.trim());
+  }
+  if (input.signupCode?.trim()) {
+    body.set("signupCode", input.signupCode.trim());
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(`${DEFAULT_HOSTED_SIGNUP_URL}?format=json`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      },
+      body: body.toString(),
+    });
+  } catch (error) {
+    throw new Error(
+      `Failed to reach hosted signup at ${DEFAULT_HOSTED_SIGNUP_URL}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
+  let payload: unknown = null;
+  try {
+    payload = await res.json();
+  } catch {
+    // ignore JSON parse failure below
+  }
+
+  if (!res.ok) {
+    const message =
+      typeof payload === "object" &&
+      payload &&
+      "error" in payload &&
+      typeof (payload as { error?: unknown }).error === "string"
+        ? (payload as { error: string }).error
+        : `HTTP ${res.status}`;
+    throw new Error(`Hosted signup failed: ${message}`);
+  }
+
+  const data = payload as {
+    workspace?: { name?: string };
+    owner?: { email?: string };
+    config?: {
+      online?: {
+        apiUrl?: string;
+        apiToken?: string;
+      };
+    };
+  };
+
+  const apiUrl = data.config?.online?.apiUrl?.trim();
+  const apiToken = data.config?.online?.apiToken?.trim();
+  if (!apiUrl || !apiToken) {
+    throw new Error("Hosted signup succeeded but did not return online config");
+  }
+
+  return {
+    workspaceName: data.workspace?.name?.trim() || input.workspaceName,
+    ownerEmail: data.owner?.email?.trim() || input.ownerEmail,
+    apiUrl,
+    apiToken,
+  };
+}
+
+async function renderAutoConnectReply(
+  config: { apiUrl: string; apiToken: string },
+  options?: { workspaceName?: string; ownerEmail?: string },
+): Promise<string> {
+  const formsCount = await verifyOnlineConfig(config);
+
+  try {
+    await applyOnlineConfigToOpenClaw(config);
+    return [
+      "ClawCollect connect is ready.",
+      ...(options?.workspaceName ? [`- workspace: ${options.workspaceName}`] : []),
+      ...(options?.ownerEmail ? [`- owner: ${options.ownerEmail}`] : []),
+      `- apiUrl: ${config.apiUrl}`,
+      "- auth: ok",
+      `- forms visible in this workspace: ${formsCount}`,
+      "- local config: written",
+      "",
+      "Run /restart now.",
+      "After restart: /collect connect check",
+      "Then: /collect form open BBQ Friday",
+    ].join("\n");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return [
+      "ClawCollect verified your online access, but could not write OpenClaw config automatically.",
+      `Reason: ${message}`,
+      "",
+      renderConnectCommandsReply(config.apiUrl, config.apiToken),
+    ].join("\n");
+  }
+}
+
 async function handleConnectCommand(
   pluginConfig: ClawCollectPluginConfig,
   args: string,
+  isAuthorizedSender: boolean,
 ): Promise<{ text: string }> {
   const trimmed = args.trim();
   if (!trimmed || trimmed === "help" || trimmed === "hosted") {
@@ -245,11 +489,67 @@ async function handleConnectCommand(
     return textReply(renderHostedConnectGuide());
   }
 
-  if (trimmed.startsWith("cc_tok_")) {
-    return textReply(renderConnectCommandsReply(DEFAULT_HOSTED_API_URL, trimmed));
+  if (!isAuthorizedSender) {
+    return textReply("Only authorized senders can change ClawCollect connection settings.");
+  }
+
+  const parsedConfig = parseConnectConfigInput(trimmed);
+  if (parsedConfig) {
+    try {
+      return textReply(await renderAutoConnectReply(parsedConfig));
+    } catch (error) {
+      return textReply(
+        [
+          "ClawCollect connect failed.",
+          formatOnlineError(error),
+          "",
+          "Paste a fresh hosted config block or token into /collect connect and try again.",
+        ].join("\n"),
+      );
+    }
   }
 
   const { head: action, tail } = splitFirstWord(trimmed);
+
+  if (action === "hosted") {
+    const parts = splitPipeArgs(tail);
+    if (parts.length < 2) {
+      return textReply(
+        "Usage: /collect connect hosted <workspace name> | <owner email> | [owner name] | [signup code]",
+      );
+    }
+
+    const [workspaceName, ownerEmail, ownerName, signupCode] = parts;
+    try {
+      const provisioned = await signupHostedWorkspace({
+        workspaceName,
+        ownerEmail,
+        ownerName,
+        signupCode,
+      });
+      return textReply(
+        await renderAutoConnectReply(
+          {
+            apiUrl: provisioned.apiUrl,
+            apiToken: provisioned.apiToken,
+          },
+          {
+            workspaceName: provisioned.workspaceName,
+            ownerEmail: provisioned.ownerEmail,
+          },
+        ),
+      );
+    } catch (error) {
+      return textReply(
+        [
+          "Hosted signup failed.",
+          formatOnlineError(error),
+          "",
+          `You can still open ${DEFAULT_HOSTED_SIGNUP_URL} in a browser, or retry /collect connect hosted ...`,
+        ].join("\n"),
+      );
+    }
+  }
 
   if (action === "token") {
     const token = tail.trim();
@@ -299,7 +599,7 @@ async function handleConnectCommand(
           "ClawCollect connect check failed.",
           formatOnlineError(err),
           "",
-          "If you just signed up for hosted access, run /collect connect token <cc_tok_...> with your latest token.",
+          "If you just signed up for hosted access, paste the latest config block or token into /collect connect.",
         ].join("\n"),
       );
     }
@@ -310,6 +610,7 @@ async function handleConnectCommand(
       "Unknown connect action.",
       "Try:",
       "/collect connect",
+      "/collect connect hosted <workspace name> | <owner email> | [owner name] | [signup code]",
       "/collect connect token <cc_tok_...>",
       "/collect connect custom <apiUrl> <cc_tok_...>",
       "/collect connect check",
@@ -357,6 +658,7 @@ async function handleFormCommand(
       [
         "Form collection commands:",
         "/collect connect",
+        "/collect connect hosted <workspace name> | <owner email> | [owner name] | [signup code]",
         "/collect connect token <cc_tok_...>",
         "/collect connect check",
         "",

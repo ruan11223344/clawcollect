@@ -132,8 +132,8 @@ export function renderSignupPage(data: {
           <h2>How it works</h2>
           <ul class="cc-list">
             <li>Install the OpenClaw plugin from npm</li>
-            <li>Paste the hosted <code>apiUrl</code> and your token into plugin config</li>
-            <li>Run <code>/collect form open</code> in chat</li>
+            <li>Run <code>/collect connect hosted &lt;workspace&gt; | &lt;email&gt;</code> in chat</li>
+            <li>Or use this page and paste the returned <code>/collect connect</code> block into chat</li>
           </ul>
         </div>
       </div>
@@ -152,6 +152,8 @@ export function renderSignupSuccessPage(data: {
   apiUrl: "${data.apiUrl}",
   apiToken: "${data.token}"
 }`;
+  const connectCommand = `/collect connect
+${configSnippet}`;
 
   return baseLayout("Hosted Workspace Ready", `
   <div class="cc-card">
@@ -169,12 +171,21 @@ export function renderSignupSuccessPage(data: {
     </div>
 
     <div class="cc-panel" style="margin-top:16px">
+      <h2>OpenClaw chat shortcut</h2>
+      <pre id="cc-connect-command" class="cc-code">${esc(connectCommand)}</pre>
+      <div class="cc-actions">
+        <button id="cc-copy-connect" type="button" class="cc-btn cc-btn-secondary">Copy /collect connect</button>
+      </div>
+      <p class="cc-small" style="margin-top:12px">Paste this directly into an OpenClaw chat. ClawCollect will try to save the connection config automatically and then ask for <code>/restart</code>.</p>
+    </div>
+
+    <div class="cc-panel" style="margin-top:16px">
       <h2>Next steps</h2>
       <ol class="cc-list">
         <li>Install the plugin: <code>openclaw plugins install @clawcollect/clawcollect</code></li>
-        <li>Add the config snippet above to your OpenClaw plugin config</li>
-        <li>Enable the plugin and restart the daemon</li>
-        <li>Run <code>/collect form open</code> in chat</li>
+        <li>Paste the <code>/collect connect</code> block above into an OpenClaw chat</li>
+        <li>Run <code>/restart</code> after ClawCollect says the local config was written</li>
+        <li>Finish with <code>/collect connect check</code> and then <code>/collect form open</code></li>
       </ol>
     </div>
 
@@ -182,15 +193,20 @@ export function renderSignupSuccessPage(data: {
   </div>
   <script>
   (function(){
-    var btn = document.getElementById('cc-copy-config');
-    var block = document.getElementById('cc-config');
-    if(!btn || !block || !navigator.clipboard) return;
-    btn.addEventListener('click', function(){
-      navigator.clipboard.writeText(block.textContent || '').then(function(){
-        btn.textContent = 'Copied';
-        setTimeout(function(){ btn.textContent = 'Copy config'; }, 1200);
+    function bindCopy(buttonId, blockId, idleText){
+      var btn = document.getElementById(buttonId);
+      var block = document.getElementById(blockId);
+      if(!btn || !block || !navigator.clipboard) return;
+      btn.addEventListener('click', function(){
+        navigator.clipboard.writeText(block.textContent || '').then(function(){
+          btn.textContent = 'Copied';
+          setTimeout(function(){ btn.textContent = idleText; }, 1200);
+        });
       });
-    });
+    }
+
+    bindCopy('cc-copy-config', 'cc-config', 'Copy config');
+    bindCopy('cc-copy-connect', 'cc-connect-command', 'Copy /collect connect');
   })();
   </script>`);
 }

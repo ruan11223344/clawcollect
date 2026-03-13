@@ -17,7 +17,7 @@ The recommended product shape is `hosted by default`, with `self-hosted` availab
 - The plugin only needs an `apiUrl` and `apiToken`
 - Example hosted service URL: `https://collect.dorapush.com`
 - Self-serve signup is available at `https://collect.dorapush.com/signup`
-- Fastest chat flow: `/collect connect` -> `/collect connect token <cc_tok_...>` -> `/collect connect check`
+- Fastest chat flow: `/collect connect hosted <workspace name> | <owner email>` -> `/restart` -> `/collect connect check`
 
 ### Self-hosted mode
 
@@ -82,8 +82,9 @@ In self-hosted mode, start the online service and run `POST /api/tokens`.
 ```text
 /collect              — show status and quick actions
 /collect help         — show available commands
-/collect connect      — show hosted setup steps
-/collect connect token <cc_tok_...> — generate exact /config commands
+/collect connect      — show hosted setup steps or parse a pasted config block
+/collect connect hosted <workspace name> | <owner email> | [owner name] | [signup code] — create hosted access from chat
+/collect connect token <cc_tok_...> — connect with a hosted token directly from chat
 /collect connect check — verify hosted/self-hosted connectivity
 /collect status       — show active form collections
 /collect doctor       — show diagnostics
@@ -97,14 +98,16 @@ In self-hosted mode, start the online service and run `POST /api/tokens`.
 ## Usage flow
 
 1. `/collect connect` — shows the hosted signup link and the shortest connection path.
-2. Sign up at `https://collect.dorapush.com/signup`, then copy your `apiToken`.
-3. `/collect connect token <cc_tok_...>` — generates exact `/config set ...` commands plus `/restart`.
+2. `/collect connect hosted Acme Events | ops@acme.com` — provisions a hosted workspace and writes the plugin config automatically.
+3. `/restart` — reload OpenClaw so the new config becomes active.
 4. `/collect connect check` — verifies the plugin can reach your hosted workspace.
 5. `/collect form open BBQ March 30` — creates a form on your configured online service, publishes it, and returns a public link plus a collector results page link.
 6. Share the link with participants. They submit responses via the web form (no auth required).
 7. `/collect form status` — check how many responses have come in and reopen the results page.
 8. `/collect form summary` — see accepted responses as a text summary in chat.
 9. `/collect form close` — close the form so no more responses are accepted.
+
+You can still use the browser signup page at `https://collect.dorapush.com/signup`; the copied config block can be pasted back into `/collect connect`.
 
 ## Online service
 
