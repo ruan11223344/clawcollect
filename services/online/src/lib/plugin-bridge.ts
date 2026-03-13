@@ -28,7 +28,7 @@
  *   {
  *     "online": {
  *       "enabled": true,
- *       "apiUrl": "https://collect.clawcollect.com",
+ *       "apiUrl": "https://collect.dorapush.com",
  *       "apiToken": "cc_tok_xxxxx"
  *     }
  *   }

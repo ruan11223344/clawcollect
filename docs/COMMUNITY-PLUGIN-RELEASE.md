@@ -4,11 +4,11 @@ Checklist for publishing ClawCollect as an OpenClaw community plugin.
 
 ## Product positioning
 
-ClawCollect is an OpenClaw plugin plus a separately deployed backend service.
+ClawCollect is an OpenClaw plugin plus a backend service that can be run as a managed deployment or self-hosted.
 
 - The plugin is what gets listed as a community plugin
-- The backend in `services/online/` is self-hosted by the user/operator
-- Public form pages and collector results pages run on the operator's Cloudflare account, not on OpenClaw itself
+- The backend in `services/online/` is the open source implementation
+- Public form pages and collector results pages can run on either a managed deployment or the operator's own Cloudflare account
 
 ## Before publish
 
@@ -34,17 +34,17 @@ ClawCollect is an OpenClaw plugin plus a separately deployed backend service.
    - plugin id: `clawcollect`
    - short description
    - repository URL
-   - note that the plugin requires a separately deployed online service
+  - note that the plugin connects to a ClawCollect-compatible online service
 
 ## Submission notes
 
 Recommended short description:
 
-`Hosted form collection bridge for OpenClaw with public links, collector results pages, and chat summaries. Requires a separately deployed Cloudflare Workers backend.`
+`Hosted form collection bridge for OpenClaw with public links, collector results pages, and chat summaries. Supports both managed and self-hosted backends.`
 
 Recommended caveat text:
 
-`This plugin is self-hosted. Form pages and response data live on the operator's own Cloudflare Workers + D1 deployment.`
+`This plugin supports both managed and self-hosted deployments. The repository includes the Cloudflare Workers + D1 backend implementation for operators who want to run their own service.`
 
 ## Missing release metadata
 

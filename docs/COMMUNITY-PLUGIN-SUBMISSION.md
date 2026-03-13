@@ -13,11 +13,11 @@ Ready-to-paste details for submitting ClawCollect to the OpenClaw community plug
 
 ## Short description
 
-`Hosted form collection bridge for OpenClaw with public links, collector results pages, and chat summaries. Requires a separately deployed Cloudflare Workers backend.`
+`Hosted form collection bridge for OpenClaw with public links, collector results pages, and chat summaries. Supports both managed and self-hosted backends.`
 
 ## Self-hosting note
 
-`This plugin is self-hosted. Public form pages, collector results pages, and response data live on the operator's own Cloudflare Workers + D1 deployment.`
+`This plugin supports both managed and self-hosted deployments. The open source repository includes the Cloudflare Workers + D1 backend implementation for operators who want to run their own service.`
 
 ## Install
 
@@ -32,7 +32,7 @@ openclaw daemon restart
 - Opens a hosted collection form from chat
 - Returns a public form link and a collector results page link
 - Lets the collector check status and summarize accepted responses in chat
-- Uses a separately deployed online service for form hosting and response storage
+- Uses a ClawCollect-compatible online service for form hosting and response storage
 
 ## Verification snapshot
 

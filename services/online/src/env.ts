@@ -9,7 +9,7 @@ export interface Env {
 
   /**
    * Comma-separated list of allowed CORS origins for /api/* routes.
-   * Example: "https://app.clawcollect.com,http://localhost:5173"
+   * Example: "https://app.dorapush.com,http://localhost:5173"
    * Falls back to same-origin only if not set in production.
    */
   ALLOWED_ORIGINS?: string;

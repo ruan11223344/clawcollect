@@ -6,14 +6,22 @@ From any OpenClaw chat, you can open a form, share a public link, check progress
 
 ## Hosting model
 
-ClawCollect is currently designed for self-hosting.
+ClawCollect should feel directly usable for end users.
 
-- You deploy the online service in `services/online/` to your own Cloudflare account
-- Public form pages (`/f/:token`) and collector results pages (`/r/:token`) run on your own Worker/domain
-- Response data is stored in your own D1 database
-- The OpenClaw plugin only calls that service over HTTP; it does not host forms by itself
+The recommended product shape is `hosted by default`, with `self-hosted` available as an advanced option.
 
-There is no managed ClawCollect-hosted SaaS in this repository today.
+### Hosted mode
+
+- Users connect the plugin to a managed ClawCollect-compatible service
+- Public form pages (`/f/:token`) and collector results pages (`/r/:token`) are hosted for them
+- The plugin only needs an `apiUrl` and `apiToken`
+- Example hosted service URL: `https://collect.dorapush.com`
+
+### Self-hosted mode
+
+- Advanced users can deploy the online service in `services/online/` to their own Cloudflare account
+- Public form pages, collector results pages, and response data then belong to that deployment
+- The plugin still connects over the same HTTP API
 
 ## Install
 
@@ -38,7 +46,9 @@ openclaw daemon restart
 
 ### Online service
 
-Deploy the backend separately from `services/online/`. The plugin requires a reachable online service URL and API token.
+For a hosted deployment, users only need a reachable service URL and API token.
+
+For self-hosting, deploy the backend separately from `services/online/`.
 
 ## Config
 
@@ -51,7 +61,7 @@ Deploy the backend separately from `services/online/`. The plugin requires a rea
         config: {
           online: {
             enabled: true,
-            apiUrl: "http://localhost:8787",
+            apiUrl: "https://collect.dorapush.com",
             apiToken: "cc_tok_xxxxx"
           }
         }
@@ -61,7 +71,9 @@ Deploy the backend separately from `services/online/`. The plugin requires a rea
 }
 ```
 
-To get an API token, start the online service and run `POST /api/tokens`.
+In hosted mode, the service operator provides the API token.
+
+In self-hosted mode, start the online service and run `POST /api/tokens`.
 
 ## Commands
 
@@ -79,7 +91,7 @@ To get an API token, start the online service and run `POST /api/tokens`.
 
 ## Usage flow
 
-1. `/collect form open BBQ March 30` — creates a form on your online service, publishes it, and returns a public link plus a collector results page link.
+1. `/collect form open BBQ March 30` — creates a form on your configured online service, publishes it, and returns a public link plus a collector results page link.
 2. Share the link with participants. They submit responses via the web form (no auth required).
 3. `/collect form status` — check how many responses have come in and reopen the results page.
 4. `/collect form summary` — see accepted responses as a text summary in chat.
@@ -87,9 +99,9 @@ To get an API token, start the online service and run `POST /api/tokens`.
 
 ## Online service
 
-The backend lives at `services/online/`. See [services/online/README.md](./services/online/README.md) for setup, API reference, and architecture details.
+The backend implementation lives at `services/online/`. See [services/online/README.md](./services/online/README.md) for API reference, self-hosting setup, and architecture details.
 
-The plugin communicates with your deployed online service via a REST API using Bearer token authentication. The plugin bridge interface is documented in [services/online/src/lib/plugin-bridge.ts](./services/online/src/lib/plugin-bridge.ts).
+The plugin communicates with a ClawCollect-compatible online service via a REST API using Bearer token authentication. The plugin bridge interface is documented in [services/online/src/lib/plugin-bridge.ts](./services/online/src/lib/plugin-bridge.ts).
 
 ## What is supported
 
