@@ -4,8 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --var ENVIRONMENT:development --var HOSTED_SIGNUP_ENABLED:true",
     "deploy": "wrangler deploy",
+    "deploy:production": "wrangler deploy",
+    "deploy:workers-dev": "wrangler deploy --workers-dev",
     "db:migrate:local": "wrangler d1 migrations apply clawcollect-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply clawcollect-db --remote",
     "provision:workspace": "node scripts/provision-workspace.mjs",

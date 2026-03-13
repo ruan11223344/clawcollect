@@ -163,7 +163,9 @@ Current hosted production URL:
 
 - `https://collect.dorapush.com`
 
-The custom-domain deployment currently disables the old `workers.dev` URL unless `workers_dev = true` is explicitly enabled in `wrangler.toml`.
+Production deploys now default to `workers_dev = false` and `preview_urls = false` in `wrangler.toml`.
+The production config also pins the Custom Domain route for `collect.dorapush.com` directly in `wrangler.toml`.
+Use `npm run deploy:workers-dev` only for temporary debugging.
 
 ### Role-Based Permissions
 
@@ -410,6 +412,8 @@ npm run dev
 
 The server starts at `http://localhost:8787`.
 
+`npm run dev` forces `ENVIRONMENT=development` locally even though `wrangler.toml` now defaults to production-safe values for deploys.
+
 ### D1 Migrations
 
 ```bash
@@ -418,6 +422,12 @@ npm run db:migrate:local
 
 # Apply to remote (production) D1
 npm run db:migrate:remote
+
+# Deploy the production worker
+npm run deploy:production
+
+# Temporary workers.dev deploy for debugging only
+npm run deploy:workers-dev
 
 # Reset local DB (delete state and re-apply)
 rm -rf .wrangler/state && npm run db:migrate:local

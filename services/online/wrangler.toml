@@ -1,9 +1,12 @@
 name = "clawcollect-online"
 main = "src/index.ts"
 compatibility_date = "2025-03-10"
+workers_dev = false
+preview_urls = false
 
 [vars]
-ENVIRONMENT = "development"
+# Production defaults. `npm run dev` overrides ENVIRONMENT locally.
+ENVIRONMENT = "production"
 HOSTED_SIGNUP_ENABLED = "true"
 # ALLOWED_ORIGINS = "https://app.dorapush.com"
 
@@ -25,6 +28,10 @@ binding = "DB"
 database_name = "clawcollect-db"
 database_id = "cc1a45d0-ed4b-4356-8b95-d8e3c3090c96"
 migrations_dir = "migrations"
+
+[[routes]]
+pattern = "collect.dorapush.com"
+custom_domain = true
 
 # TODO: Uncomment when file upload is implemented
 # [[r2_buckets]]
