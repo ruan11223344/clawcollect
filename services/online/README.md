@@ -98,7 +98,7 @@ npm run provision:workspace -- \
   --email ops@acme.com \
   --plan free \
   --remote \
-  --api-url https://clawcollect-online.ruan4215.workers.dev
+  --api-url https://collect.dorapush.com
 ```
 
 This creates one isolated hosted customer workspace and prints the plaintext API token once.
@@ -119,7 +119,7 @@ npx wrangler secret put INTERNAL_PROVISIONING_SECRET
 Then call:
 
 ```bash
-curl -X POST https://clawcollect-online.ruan4215.workers.dev/internal/provision-workspace \
+curl -X POST https://collect.dorapush.com/internal/provision-workspace \
   -H "Authorization: Bearer YOUR_INTERNAL_PROVISIONING_SECRET" \
   -H "Content-Type: application/json" \
   -d '{
@@ -136,6 +136,12 @@ Response includes:
 - owner record
 - a freshly minted workspace-scoped `api_token`
 - an `online` config snippet ready for the OpenClaw plugin
+
+Current hosted production URL:
+
+- `https://collect.dorapush.com`
+
+The custom-domain deployment currently disables the old `workers.dev` URL unless `workers_dev = true` is explicitly enabled in `wrangler.toml`.
 
 ### Role-Based Permissions
 
