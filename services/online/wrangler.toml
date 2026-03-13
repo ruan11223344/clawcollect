@@ -1,0 +1,26 @@
+name = "clawcollect-online"
+main = "src/index.ts"
+compatibility_date = "2025-03-10"
+
+[vars]
+ENVIRONMENT = "development"
+# ALLOWED_ORIGINS = "https://app.clawcollect.com"
+
+# Paddle product_id → plan mapping (required for webhook processing)
+# Get these from your Paddle dashboard after creating products.
+# PADDLE_PRODUCT_PRO = "pro_xxxxxxxxxxxx"
+# PADDLE_PRODUCT_TEAM = "pro_yyyyyyyyyyyy"
+
+# Paddle webhook signing secret (required in production)
+# PADDLE_WEBHOOK_SECRET = ""
+
+[[d1_databases]]
+binding = "DB"
+database_name = "clawcollect-db"
+database_id = "local"  # Replace with real database_id after `wrangler d1 create clawcollect-db`
+migrations_dir = "migrations"
+
+# TODO: Uncomment when file upload is implemented
+# [[r2_buckets]]
+# binding = "FILES"
+# bucket_name = "clawcollect-files"

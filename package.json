@@ -1,0 +1,57 @@
+{
+  "name": "@clawcollect/clawcollect",
+  "version": "0.2.0",
+  "description": "Collect chat replies into checklists, group collections, and reminders for OpenClaw",
+  "type": "module",
+  "main": "src/index.ts",
+  "files": [
+    "src",
+    "docs",
+    "README.md",
+    "openclaw.plugin.json",
+    "package.json",
+    "tsconfig.json"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruan11223344/clawcollect.git"
+  },
+  "homepage": "https://github.com/ruan11223344/clawcollect#readme",
+  "bugs": {
+    "url": "https://github.com/ruan11223344/clawcollect/issues"
+  },
+  "scripts": {
+    "dev": "openclaw plugins install -l . && openclaw daemon restart",
+    "check": "../openclaw-shoppilot/node_modules/.bin/tsc -p tsconfig.json"
+  },
+  "openclaw": {
+    "extensions": [
+      "./src/index.ts"
+    ],
+    "install": {
+      "npmSpec": "@clawcollect/clawcollect",
+      "localPath": "extensions/clawcollect",
+      "defaultChoice": "npm"
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "openclaw": "*",
+    "typescript": "^5.4.0"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.3.0"
+  },
+  "keywords": [
+    "openclaw",
+    "openclaw-plugin",
+    "checklist",
+    "reminder",
+    "group-collection",
+    "clawcollect"
+  ],
+  "license": "MIT"
+}

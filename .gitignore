@@ -1,0 +1,16 @@
+node_modules/
+services/online/node_modules/
+services/online/.wrangler/
+
+.DS_Store
+.idea/
+.claude/
+
+.env
+.env.*
+!.env.example
+.dev.vars
+
+*.log
+coverage/
+dist/
