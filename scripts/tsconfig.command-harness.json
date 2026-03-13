@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "../.tmp/command-harness",
+    "rootDir": "..",
+    "module": "ESNext",
+    "moduleResolution": "Bundler"
+  },
+  "include": [
+    "../src/**/*.ts",
+    "./**/*.ts"
+  ]
+}

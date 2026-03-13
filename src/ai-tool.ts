@@ -8,17 +8,17 @@ import {
   getCollectionStatusForScope,
   getCollectionSummaryForScope,
   openCollectionForScope,
-} from "./app";
-import { evaluateClawCollectPolicy } from "./policy";
-import { armBlockedSessionGuard, shouldBlockFollowupTools } from "./safety-guard";
-import { loadStore } from "./storage";
-import { resolveToolScope } from "./scope";
+} from "./app.js";
+import { evaluateClawCollectPolicy } from "./policy.js";
+import { armBlockedSessionGuard, shouldBlockFollowupTools } from "./safety-guard.js";
+import { loadStore } from "./storage.js";
+import { resolveToolScope } from "./scope.js";
 import type {
   ClawCollectBoundaryKind,
   ClawCollectPluginConfig,
   ClawCollectRiskLevel,
-} from "./types";
-import { resolveClawCollectTimeZone } from "./timezone";
+} from "./types.js";
+import { resolveClawCollectTimeZone } from "./timezone.js";
 
 export type ClawCollectToolContext = {
   sessionKey?: string;

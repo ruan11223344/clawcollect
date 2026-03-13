@@ -1,4 +1,4 @@
-import { makeId, normalizeItemText, nowIso } from "./helpers";
+import { makeId, normalizeItemText, nowIso } from "./helpers.js";
 import type {
   AssetRef,
   Checklist,
@@ -9,7 +9,7 @@ import type {
   ClawCollectRiskLevel,
   ClawCollectStore,
   Reminder,
-} from "./types";
+} from "./types.js";
 
 export function createDefaultStore(): ClawCollectStore {
   return {

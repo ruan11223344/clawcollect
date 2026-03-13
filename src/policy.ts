@@ -2,7 +2,7 @@ import type {
   ClawCollectBoundaryKind,
   ClawCollectPluginConfig,
   ClawCollectRiskLevel,
-} from "./types";
+} from "./types.js";
 
 export type PolicyEvaluation =
   | { status: "ok"; reason?: "ok" }

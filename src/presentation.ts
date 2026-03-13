@@ -1,11 +1,11 @@
-import { formatClawCollectDateTime } from "./timezone";
+import { formatClawCollectDateTime } from "./timezone.js";
 import type {
   Checklist,
   ChecklistItem,
   ClawCollectDeliveryPayload,
   ClawCollectPresentationConfig,
   Reminder,
-} from "./types";
+} from "./types.js";
 
 function cleanText(value: string | undefined): string | undefined {
   const trimmed = value?.trim();

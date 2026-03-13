@@ -25,7 +25,10 @@
   },
   "scripts": {
     "dev": "openclaw plugins install -l . && openclaw daemon restart",
-    "check": "../openclaw-shoppilot/node_modules/.bin/tsc -p tsconfig.json"
+    "check": "../openclaw-shoppilot/node_modules/.bin/tsc -p tsconfig.json",
+    "command:harness:build": "tsc -p scripts/tsconfig.command-harness.json",
+    "command:harness": "npm run command:harness:build && node --experimental-specifier-resolution=node .tmp/command-harness/scripts/command-harness.js",
+    "smoke:commands": "npm run command:harness:build && node --experimental-specifier-resolution=node .tmp/command-harness/scripts/command-smoke.js"
   },
   "openclaw": {
     "extensions": [

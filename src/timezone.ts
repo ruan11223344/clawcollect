@@ -1,4 +1,4 @@
-import type { ClawCollectPluginConfig } from "./types";
+import type { ClawCollectPluginConfig } from "./types.js";
 
 type ClawCollectTimezoneContext = {
   scopeKey?: string;

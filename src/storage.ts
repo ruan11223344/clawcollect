@@ -1,8 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { createDefaultStore } from "./domain";
-import type { CollectionStatus, OnlineCollectionStatus, ClawCollectPluginConfig, ClawCollectStore } from "./types";
+import { createDefaultStore } from "./domain.js";
+import type { CollectionStatus, OnlineCollectionStatus, ClawCollectPluginConfig, ClawCollectStore } from "./types.js";
 
 let updateQueue: Promise<void> = Promise.resolve();
 

@@ -9,16 +9,16 @@ import {
   splitPipeArgs,
   splitFirstWord,
   textReply,
-} from "./helpers";
-import { OnlineClient, OnlineServiceError } from "./online-client";
-import { loadStore, resolveStorePath, updateStore } from "./storage";
-import { resolveCommandScope } from "./scope";
+} from "./helpers.js";
+import { OnlineClient, OnlineServiceError } from "./online-client.js";
+import { loadStore, resolveStorePath, updateStore } from "./storage.js";
+import { resolveCommandScope } from "./scope.js";
 import type {
   LifeCommandContext,
   ClawCollectPluginConfig,
   ClawCollectStore,
   OnlineCollection,
-} from "./types";
+} from "./types.js";
 
 const DEFAULT_HOSTED_API_URL = "https://collect.dorapush.com";
 const DEFAULT_HOSTED_SIGNUP_URL = `${DEFAULT_HOSTED_API_URL}/signup`;
@@ -285,6 +285,10 @@ function renderConnectCommandsReply(apiUrl: string, apiToken: string): string {
   ].join("\n");
 }
 
+function shouldSkipOpenClawConfigWrite(): boolean {
+  return process.env.CLAWCOLLECT_SKIP_OPENCLAW_CONFIG_WRITE === "1";
+}
+
 async function verifyOnlineConfig(config: {
   apiUrl: string;
   apiToken: string;
@@ -439,6 +443,20 @@ async function renderAutoConnectReply(
   options?: { workspaceName?: string; ownerEmail?: string },
 ): Promise<string> {
   const formsCount = await verifyOnlineConfig(config);
+
+  if (shouldSkipOpenClawConfigWrite()) {
+    return [
+      "ClawCollect verified your online access.",
+      ...(options?.workspaceName ? [`- workspace: ${options.workspaceName}`] : []),
+      ...(options?.ownerEmail ? [`- owner: ${options.ownerEmail}`] : []),
+      `- apiUrl: ${config.apiUrl}`,
+      "- auth: ok",
+      `- forms visible in this workspace: ${formsCount}`,
+      "- local config: skipped (CLAWCOLLECT_SKIP_OPENCLAW_CONFIG_WRITE=1)",
+      "",
+      renderConnectCommandsReply(config.apiUrl, config.apiToken),
+    ].join("\n");
+  }
 
   try {
     await applyOnlineConfigToOpenClaw(config);

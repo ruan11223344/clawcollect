@@ -4,14 +4,14 @@ import {
   DEFAULT_ALLOWED_BOUNDARIES,
   DEFAULT_BLOCKED_BOUNDARIES,
   evaluateClawCollectPolicy,
-} from "./policy";
+} from "./policy.js";
 import {
   createReminderPayload,
   flattenPayloadFields,
   renderPayloadText,
-} from "./presentation";
-import { parseScopeKey, scopeToMessageTarget } from "./scope";
-import { loadStore, updateStore } from "./storage";
+} from "./presentation.js";
+import { parseScopeKey, scopeToMessageTarget } from "./scope.js";
+import { loadStore, updateStore } from "./storage.js";
 import type {
   ClawCollectAdapterConfig,
   ClawCollectAdapterKind,
@@ -30,7 +30,7 @@ import type {
   ClawCollectRiskLevel,
   ClawCollectStore,
   Reminder,
-} from "./types";
+} from "./types.js";
 
 type ResolvedAdapter = ClawCollectAdapterConfig & {
   id: string;

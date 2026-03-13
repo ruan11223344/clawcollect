@@ -1,12 +1,12 @@
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 
-import { captureFragmentForScope } from "./app";
-import { resolveMessageScope } from "./scope";
+import { captureFragmentForScope } from "./app.js";
+import { resolveMessageScope } from "./scope.js";
 import type {
   ClawCollectPluginConfig,
   LifeMessageContext,
   LifeMessageEvent,
-} from "./types";
+} from "./types.js";
 
 export async function handleMessageReceived(
   api: OpenClawPluginApi,

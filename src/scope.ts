@@ -1,4 +1,4 @@
-import type { LifeCommandContext, LifeMessageContext, LifeMessageEvent } from "./types";
+import type { LifeCommandContext, LifeMessageContext, LifeMessageEvent } from "./types.js";
 
 export type LifeScopeChatKind = "direct" | "group" | "channel";
 

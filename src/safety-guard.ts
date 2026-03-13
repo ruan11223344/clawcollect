@@ -1,7 +1,7 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 
-import { parseScopeKey, resolveToolScope, scopeToMessageTarget } from "./scope";
-import type { ClawCollectBoundaryKind } from "./types";
+import { parseScopeKey, resolveToolScope, scopeToMessageTarget } from "./scope.js";
+import type { ClawCollectBoundaryKind } from "./types.js";
 
 type GuardHookUsage = {
   beforeMessageWrite?: boolean;

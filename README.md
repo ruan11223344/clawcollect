@@ -143,6 +143,8 @@ See **[MIGRATION.md](./MIGRATION.md)** for the full upgrade guide.
 
 ## Testing
 
+- **Local command harness**: `npm run command:harness -- '/collect help'` — invoke the plugin slash-command handler directly without going through the LLM
+- **Command smoke**: `npm run smoke:commands` — non-destructive slash-command smoke for `/collect help`, `/collect connect`, and `/collect form help`
 - **Online service smoke test**: `cd services/online && npm run smoke` — see [services/online/README.md](./services/online/README.md)
 - **Role & isolation smoke**: `cd services/online && npm run smoke:roles` — multi-workspace isolation + owner permissions
 - **Browser E2E smoke**: `cd services/online && npm run smoke:e2e` — public form browser flow (requires Playwright)

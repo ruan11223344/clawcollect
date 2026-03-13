@@ -1,7 +1,7 @@
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 
-import { registerClawCollectCommands } from "./commands";
-import type { ClawCollectPluginConfig } from "./types";
+import { registerClawCollectCommands } from "./commands.js";
+import type { ClawCollectPluginConfig } from "./types.js";
 
 function resolvePluginConfig(raw: unknown): ClawCollectPluginConfig {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {

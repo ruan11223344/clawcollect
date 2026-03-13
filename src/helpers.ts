@@ -9,13 +9,13 @@ import type {
   LifeCommandContext,
   LifeMessageContext,
   Reminder,
-} from "./types";
+} from "./types.js";
 import {
   createChecklistPayload,
   createReminderPayload,
   renderPayloadText,
-} from "./presentation";
-import { formatClawCollectDateTime, parseClawCollectDateTime } from "./timezone";
+} from "./presentation.js";
+import { formatClawCollectDateTime, parseClawCollectDateTime } from "./timezone.js";
 
 export function nowIso(): string {
   return new Date().toISOString();

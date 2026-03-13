@@ -5,7 +5,7 @@ import {
   createCollectionSession,
   createReminder,
   mergeCapturedItems,
-} from "./domain";
+} from "./domain.js";
 import {
   extractAssetRefs,
   extractChecklistItems,
@@ -15,9 +15,9 @@ import {
   renderChecklist,
   renderReminder,
   summarizeChecklist,
-} from "./helpers";
-import { evaluateClawCollectPolicy } from "./policy";
-import { loadStore, updateStore } from "./storage";
+} from "./helpers.js";
+import { evaluateClawCollectPolicy } from "./policy.js";
+import { loadStore, updateStore } from "./storage.js";
 import type {
   Checklist,
   CollectionSession,
@@ -26,7 +26,7 @@ import type {
   ClawCollectRiskLevel,
   ClawCollectStore,
   Reminder,
-} from "./types";
+} from "./types.js";
 
 export type ClawCollectActionResult<T = Record<string, unknown>> = {
   ok: boolean;
