@@ -9,6 +9,7 @@ import { loadEntitlements } from "./middleware/entitlements";
 import { forms } from "./routes/forms";
 import { pub } from "./routes/public";
 import { results } from "./routes/results";
+import { signup } from "./routes/signup";
 import { internal } from "./routes/internal";
 import { tokens } from "./routes/tokens";
 import { webhooks } from "./routes/webhooks";
@@ -103,6 +104,7 @@ api.get("/entitlements", (c) => {
 app.route("/api", api);
 
 // ── Public routes (no auth) ──────────────────────────────────────────
+app.route("/signup", signup);
 app.route("/f", pub);
 app.route("/r", results);
 

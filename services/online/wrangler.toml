@@ -4,6 +4,7 @@ compatibility_date = "2025-03-10"
 
 [vars]
 ENVIRONMENT = "development"
+HOSTED_SIGNUP_ENABLED = "true"
 # ALLOWED_ORIGINS = "https://app.dorapush.com"
 
 # Paddle product_id → plan mapping (required for webhook processing)
@@ -16,6 +17,8 @@ ENVIRONMENT = "development"
 
 # Internal provisioning secret should be stored with:
 #   npx wrangler secret put INTERNAL_PROVISIONING_SECRET
+# Optional signup gate secret:
+#   npx wrangler secret put HOSTED_SIGNUP_CODE
 
 [[d1_databases]]
 binding = "DB"

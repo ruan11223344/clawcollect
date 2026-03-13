@@ -16,6 +16,7 @@ The recommended product shape is `hosted by default`, with `self-hosted` availab
 - Public form pages (`/f/:token`) and collector results pages (`/r/:token`) are hosted for them
 - The plugin only needs an `apiUrl` and `apiToken`
 - Example hosted service URL: `https://collect.dorapush.com`
+- Self-serve signup is available at `https://collect.dorapush.com/signup`
 
 ### Self-hosted mode
 

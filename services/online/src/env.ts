@@ -5,8 +5,10 @@ export interface Env {
   DB: D1Database;
   // FILES: R2Bucket;  // TODO: uncomment when file upload is implemented
   ENVIRONMENT: string;
+  HOSTED_SIGNUP_ENABLED?: string;
   PADDLE_WEBHOOK_SECRET?: string;
   INTERNAL_PROVISIONING_SECRET?: string;
+  HOSTED_SIGNUP_CODE?: string;
 
   /**
    * Comma-separated list of allowed CORS origins for /api/* routes.

@@ -29,6 +29,7 @@ This service is intended to be deployed into the operator's own Cloudflare accou
 - CORS: env-based origin allowlist for `/api/*`, open for `/f/*`
 - Dev mode: `X-Dev-User-Id` + `X-Dev-Workspace-Id` headers bypass auth with auto-provisioned test data (role=owner)
 - **Internal hosted provisioning API**: secret-protected `POST /internal/provision-workspace` to create one isolated hosted workspace and one dedicated API token
+- **Hosted self-serve signup**: public `GET /signup` and `POST /signup` flow for one-click hosted workspace creation
 
 ### Not yet implemented
 
@@ -104,6 +105,27 @@ npm run provision:workspace -- \
 This creates one isolated hosted customer workspace and prints the plaintext API token once.
 
 Add `--json` if you want machine-readable output for automation.
+
+### Hosted self-serve signup
+
+To make hosted onboarding easy for end users, enable the public signup page:
+
+```toml
+[vars]
+HOSTED_SIGNUP_ENABLED = "true"
+```
+
+Optional: require an invite/access code by storing a secret:
+
+```bash
+npx wrangler secret put HOSTED_SIGNUP_CODE
+```
+
+When enabled, users can open:
+
+- `https://collect.dorapush.com/signup`
+
+The public signup flow provisions a new free-tier workspace and returns the user's dedicated `apiToken` once.
 
 ### Internal provisioning API
 
