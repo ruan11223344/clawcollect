@@ -8,6 +8,7 @@
     "deploy": "wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply clawcollect-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply clawcollect-db --remote",
+    "provision:workspace": "node scripts/provision-workspace.mjs",
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke.mjs",
     "smoke:roles": "node scripts/smoke-roles.mjs",

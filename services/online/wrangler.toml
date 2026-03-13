@@ -14,10 +14,13 @@ ENVIRONMENT = "development"
 # Paddle webhook signing secret (required in production)
 # PADDLE_WEBHOOK_SECRET = ""
 
+# Internal provisioning secret should be stored with:
+#   npx wrangler secret put INTERNAL_PROVISIONING_SECRET
+
 [[d1_databases]]
 binding = "DB"
 database_name = "clawcollect-db"
-database_id = "local"  # Replace with real database_id after `wrangler d1 create clawcollect-db`
+database_id = "cc1a45d0-ed4b-4356-8b95-d8e3c3090c96"
 migrations_dir = "migrations"
 
 # TODO: Uncomment when file upload is implemented

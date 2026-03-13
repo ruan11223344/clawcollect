@@ -9,6 +9,7 @@ import { loadEntitlements } from "./middleware/entitlements";
 import { forms } from "./routes/forms";
 import { pub } from "./routes/public";
 import { results } from "./routes/results";
+import { internal } from "./routes/internal";
 import { tokens } from "./routes/tokens";
 import { webhooks } from "./routes/webhooks";
 
@@ -107,6 +108,9 @@ app.route("/r", results);
 
 // ── Webhook routes (no auth, uses signature verification) ────────────
 app.route("/webhooks", webhooks);
+
+// ── Internal service routes (secret-protected) ───────────────────────
+app.route("/internal", internal);
 
 export default app;
 

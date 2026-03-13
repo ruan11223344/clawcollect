@@ -6,6 +6,7 @@ export interface Env {
   // FILES: R2Bucket;  // TODO: uncomment when file upload is implemented
   ENVIRONMENT: string;
   PADDLE_WEBHOOK_SECRET?: string;
+  INTERNAL_PROVISIONING_SECRET?: string;
 
   /**
    * Comma-separated list of allowed CORS origins for /api/* routes.

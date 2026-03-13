@@ -28,6 +28,7 @@ This service is intended to be deployed into the operator's own Cloudflare accou
 - Webhook error handling: returns 5xx on failure so Paddle retries
 - CORS: env-based origin allowlist for `/api/*`, open for `/f/*`
 - Dev mode: `X-Dev-User-Id` + `X-Dev-Workspace-Id` headers bypass auth with auto-provisioned test data (role=owner)
+- **Internal hosted provisioning API**: secret-protected `POST /internal/provision-workspace` to create one isolated hosted workspace and one dedicated API token
 
 ### Not yet implemented
 
@@ -79,6 +80,62 @@ X-Dev-Workspace-Id: ws_test123
 ```
 
 Dev users are auto-provisioned with `role=owner`.
+
+### Hosted workspace provisioning
+
+For a managed deployment, do **not** share one bootstrap token across all customers. Each customer should get:
+
+- a dedicated workspace
+- a dedicated owner user
+- a dedicated API token
+
+Use the provisioning script:
+
+```bash
+cd services/online
+npm run provision:workspace -- \
+  --name "Acme Events" \
+  --email ops@acme.com \
+  --plan free \
+  --remote \
+  --api-url https://clawcollect-online.ruan4215.workers.dev
+```
+
+This creates one isolated hosted customer workspace and prints the plaintext API token once.
+
+Add `--json` if you want machine-readable output for automation.
+
+### Internal provisioning API
+
+For a managed deployment, prefer calling the internal provisioning endpoint from your own backend instead of asking end users to run any setup commands.
+
+Set a secret in Cloudflare:
+
+```bash
+cd services/online
+npx wrangler secret put INTERNAL_PROVISIONING_SECRET
+```
+
+Then call:
+
+```bash
+curl -X POST https://clawcollect-online.ruan4215.workers.dev/internal/provision-workspace \
+  -H "Authorization: Bearer YOUR_INTERNAL_PROVISIONING_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "workspaceName": "Acme Events",
+    "ownerEmail": "ops@acme.com",
+    "ownerName": "Acme Ops",
+    "plan": "free"
+  }'
+```
+
+Response includes:
+
+- isolated `workspace.id`
+- owner record
+- a freshly minted workspace-scoped `api_token`
+- an `online` config snippet ready for the OpenClaw plugin
 
 ### Role-Based Permissions
 
