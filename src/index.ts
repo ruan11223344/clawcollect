@@ -2,6 +2,7 @@ import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 
 import { registerClawCollectCommands } from "./commands.js";
 import { createClawCollectFormToolFactory } from "./form-tool.js";
+import { CLAWCOLLECT_AGENT_GUIDANCE } from "./prompt-guidance.js";
 import type { ClawCollectPluginConfig } from "./types.js";
 
 function resolvePluginConfig(raw: unknown): ClawCollectPluginConfig {
@@ -21,6 +22,9 @@ const clawCollectPlugin = {
 
     registerClawCollectCommands(api, pluginConfig);
     api.registerTool(createClawCollectFormToolFactory(api, pluginConfig));
+    api.on("before_prompt_build", async () => ({
+      prependSystemContext: CLAWCOLLECT_AGENT_GUIDANCE,
+    }));
 
     api.logger.info("[clawcollect] loaded");
   },
