@@ -7,9 +7,9 @@
 
 // ── Types ────────────────────────────────────────────────────────────
 
-export type FieldType = "text" | "textarea" | "email" | "number" | "select" | "radio" | "checkbox" | "date" | "time" | "file" | "phone" | "idcard" | "rating";
+export type FieldType = "text" | "textarea" | "email" | "number" | "select" | "radio" | "checkbox" | "date" | "time" | "file" | "phone" | "idcard" | "rating" | "url";
 
-const FIELD_TYPES = new Set<string>(["text", "textarea", "email", "number", "select", "radio", "checkbox", "date", "time", "file", "phone", "idcard", "rating"]);
+const FIELD_TYPES = new Set<string>(["text", "textarea", "email", "number", "select", "radio", "checkbox", "date", "time", "file", "phone", "idcard", "rating", "url"]);
 
 export interface FieldDefinition {
   id: string;
@@ -116,6 +116,7 @@ export function validateSchemaDefinition(schema: unknown): FieldError[] {
 // ── Submission validation ────────────────────────────────────────────
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const URL_RE = /^https?:\/\/.+/i;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:\d{2}$/;
 const PHONE_RE = /^(\+?\d[\d\s\-().]{6,19}\d)$/;
@@ -291,6 +292,17 @@ export function validateSubmission(
         const [h, m] = value.split(":").map(Number);
         if (h > 23 || m > 59) {
           errors.push({ field: field.id, code: "invalid_time", message: `${field.label} is not a valid time` });
+        }
+        break;
+      }
+
+      case "url": {
+        if (typeof value !== "string") {
+          errors.push({ field: field.id, code: "invalid_type", message: `${field.label} must be a string` });
+          break;
+        }
+        if (!URL_RE.test(value.trim())) {
+          errors.push({ field: field.id, code: "invalid_url", message: `${field.label} is not a valid URL (must start with http:// or https://)` });
         }
         break;
       }

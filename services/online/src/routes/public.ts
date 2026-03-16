@@ -43,6 +43,7 @@ interface FormRow {
   file_upload_enabled: number;
   responses_count: number;
   closes_at: number | null;
+  max_responses: number | null;
 }
 
 /** Subscription statuses that block public access entirely. */
@@ -110,6 +111,17 @@ async function validatePublicAccess(
   // Check scheduled close
   if (form.closes_at && nowEpoch() > form.closes_at) {
     return { ok: false, status: 410, error: "This form is no longer accepting responses." };
+  }
+
+  // Check form-level response cap
+  if (form.max_responses !== null) {
+    const count = await db
+      .prepare("SELECT COUNT(*) as cnt FROM responses WHERE form_id = ? AND status = 'accepted'")
+      .bind(form.id)
+      .first<{ cnt: number }>();
+    if ((count?.cnt ?? 0) >= form.max_responses) {
+      return { ok: false, status: 410, error: "This form has reached its response limit" };
+    }
   }
 
   // Check workspace entitlements

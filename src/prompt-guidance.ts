@@ -129,12 +129,13 @@ Use the same language as the user's request. If the user writes in Chinese, all 
 
 - ONE piece of information per field. Never combine two distinct pieces of data into a single field label (e.g. "姓名及班级" is wrong — split into two fields: "姓名" and "班级").
 - If a form naturally collects identity info (name, class, grade, school, ID number), create a separate field for each.
-- Use `text` for short free-text answers, `textarea` for long answers, `radio` for single-choice, `checkbox` (with options array) for multi-choice, `select` for dropdowns, `phone` for phone numbers, `rating` (with optional `max`) for star ratings, `date` for date pickers, `time` for time pickers, `file` for attachments.
+- Use `text` for short free-text answers, `textarea` for long answers, `radio` for single-choice, `checkbox` (with options array) for multi-choice, `select` for dropdowns, `phone` for phone numbers, `rating` (with optional `max`) for star ratings, `date` for date pickers, `time` for time pickers, `file` for attachments, `url` for website/social media links (validates http/https format).
 - Use `idcard` for ID card / passport number fields. For Chinese mainland ID omit `pattern` (uses 18-digit checksum). For other regions set `pattern` to the appropriate regex (e.g. HK: `"^[A-Z]{1,2}\\d{6}(\\(\\d\\))?$"`).
 - When the form involves a phone number, always use `phone` type — never `text`.
 - When collecting satisfaction / rating, always use `rating` type — never a text field or a radio with numbers.
 - When a field needs guidance text (e.g. format hint, what to fill in), add a `hint` property: `hint: "如：138xxxx8888"`. Keep hints concise.
 - For forms with a specific thank-you message (e.g. "报名成功！工作人员3天内联系您"), set `settings.submit_message` when calling clawcollect_form.
+- To cap the total number of submissions (e.g. "限额50份"), set `max_responses: 50` when calling clawcollect_form. The form stops accepting new submissions once the limit is reached.
 - For appointment/booking forms, use both `date` and `time` fields (or `radio` for fixed time slots).
 - For internal OA forms (leave/expense), use `date` for start/end dates and `file` for supporting documents.
 

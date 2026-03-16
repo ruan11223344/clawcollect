@@ -37,6 +37,7 @@ forms.post("/", async (c) => {
     description?: string;
     schema?: unknown[];
     settings?: Record<string, unknown>;
+    max_responses?: number;
   }>();
 
   if (!body.title?.trim()) {
@@ -58,8 +59,8 @@ forms.post("/", async (c) => {
 
   await db
     .prepare(
-      `INSERT INTO forms (id, workspace_id, created_by, title, description, schema, settings, status, file_upload_enabled, responses_count, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'draft', ?, 0, ?, ?)`,
+      `INSERT INTO forms (id, workspace_id, created_by, title, description, schema, settings, status, file_upload_enabled, responses_count, max_responses, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'draft', ?, 0, ?, ?, ?)`,
     )
     .bind(
       formId,
@@ -70,6 +71,7 @@ forms.post("/", async (c) => {
       JSON.stringify(body.schema ?? []),
       JSON.stringify(body.settings ?? {}),
       hasFileField ? 1 : 0,
+      typeof body.max_responses === "number" && body.max_responses > 0 ? body.max_responses : null,
       now,
       now,
     )
@@ -148,6 +150,7 @@ forms.patch("/:id", async (c) => {
     schema?: unknown[];
     settings?: Record<string, unknown>;
     closes_at?: number | null;
+    max_responses?: number | null;
   }>();
 
   // Validate schema if provided
@@ -183,6 +186,10 @@ forms.patch("/:id", async (c) => {
   if (body.closes_at !== undefined) {
     sets.push("closes_at = ?");
     values.push(body.closes_at);
+  }
+  if (body.max_responses !== undefined) {
+    sets.push("max_responses = ?");
+    values.push(body.max_responses !== null && body.max_responses > 0 ? body.max_responses : null);
   }
 
   if (sets.length === 0) {
@@ -502,6 +509,66 @@ forms.patch("/:id/responses/:responseId/moderation", requireRole("owner", "admin
     .run();
 
   return c.json({ id: responseId, status: body.status, updated_at: now });
+});
+
+// ── GET /api/forms/:id/export ─ CSV download ─────────────────────────
+forms.get("/:id/export", async (c) => {
+  const auth = c.get("auth");
+  const entitlements = c.get("entitlements");
+  const formId = c.req.param("id");
+  const db = c.env.DB;
+
+  if (!entitlements.export_enabled) {
+    return c.json({ error: "CSV export requires Pro plan or above" }, 403);
+  }
+
+  const form = await db
+    .prepare("SELECT id, title, schema FROM forms WHERE id = ? AND workspace_id = ?")
+    .bind(formId, auth.workspaceId)
+    .first<{ id: string; title: string; schema: string }>();
+
+  if (!form) {
+    return c.json({ error: "Form not found" }, 404);
+  }
+
+  const schema: { id: string; label: string; type: string }[] = JSON.parse(form.schema);
+
+  const result = await db
+    .prepare("SELECT id, data, created_at FROM responses WHERE form_id = ? AND status = 'accepted' ORDER BY created_at ASC")
+    .bind(formId)
+    .all<{ id: string; data: string; created_at: number }>();
+
+  const rows = result.results ?? [];
+
+  // Build CSV
+  function csvCell(v: unknown): string {
+    const s = v === null || v === undefined ? "" : Array.isArray(v) ? (v as unknown[]).join("; ") : String(v);
+    if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  }
+
+  const headers = ["response_id", "submitted_at", ...schema.map((f) => f.label)];
+  const csvLines: string[] = [headers.map(csvCell).join(",")];
+
+  for (const row of rows) {
+    let data: Record<string, unknown> = {};
+    try { data = JSON.parse(row.data); } catch { /* skip */ }
+    const submittedAt = new Date(row.created_at * 1000).toISOString();
+    const cells = [row.id, submittedAt, ...schema.map((f) => data[f.id] ?? "")];
+    csvLines.push(cells.map(csvCell).join(","));
+  }
+
+  const csv = csvLines.join("\r\n");
+  const filename = `responses-${formId}.csv`;
+
+  return new Response(csv, {
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+    },
+  });
 });
 
 export { forms };
