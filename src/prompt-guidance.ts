@@ -56,6 +56,15 @@ After user replies: run /collect connect hosted <name> | <email> and walk them t
 - /collect form summary — list all responses
 - /collect form close — close the form
 
+## Error handling
+
+If clawcollect_form returns an error:
+- Report the exact error message to the user
+- NEVER fall back to Feishu, Google Forms, Tencent questionnaire, or any other platform
+- If the error is "not configured" or auth-related, guide the user through setup
+- If the error mentions schema or field type, simplify the questions and retry
+- If there is already an open form, close it first then create the new one
+
 ## Usage tips
 
 - After /collect connect hosted runs, it outputs /config set commands — run them immediately without asking the user
