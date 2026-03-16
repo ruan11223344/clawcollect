@@ -659,8 +659,8 @@ function findActiveOnlineCollection(
 }
 
 const DEFAULT_ONLINE_SCHEMA = [
-  { id: "name", type: "text", label: "Name" },
-  { id: "response", type: "textarea", label: "Response", required: true },
+  { id: "name", type: "text", label: "姓名" },
+  { id: "response", type: "textarea", label: "回复", required: true },
 ];
 
 export async function handleFormCommand(
@@ -668,6 +668,7 @@ export async function handleFormCommand(
   stateDir: string,
   scopeKey: string,
   args: string,
+  opts?: { description?: string; questions?: import("./types.js").FormQuestion[] },
 ): Promise<{ text: string }> {
   const { head: action, tail } = splitFirstWord(args);
 
@@ -710,11 +711,15 @@ export async function handleFormCommand(
 
     try {
       const title = tail.trim();
+      const schema = opts?.questions && opts.questions.length > 0
+        ? opts.questions
+        : DEFAULT_ONLINE_SCHEMA;
 
-      // Create form with minimal schema
+      // Create form
       const form = await client.createForm({
         title,
-        schema: DEFAULT_ONLINE_SCHEMA,
+        description: opts?.description,
+        schema,
         settings: { allow_response_edit: true },
       });
 

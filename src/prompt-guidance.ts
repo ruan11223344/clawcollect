@@ -29,6 +29,7 @@ Example question design for "产品反馈":
 - q4: text, "您的联系方式（选填）", required: false
 
 Always tailor questions to the specific scenario — never reuse a generic template.
+Use the same language as the user's request. If the user writes in Chinese, all question labels, options, and the form title/description must be in Chinese.
 
 ## Setup (first-time)
 
