@@ -75,8 +75,8 @@ export function validateSchemaDefinition(schema: unknown): FieldError[] {
       errors.push({ field: prefix, code: "missing_label", message: "Field must have a non-empty label" });
     }
 
-    // select/radio must have options
-    if (f.type === "select" || f.type === "radio") {
+    // select/radio/checkbox-group must have options
+    if (f.type === "select" || f.type === "radio" || (f.type === "checkbox" && Array.isArray(f.options))) {
       if (!Array.isArray(f.options) || f.options.length === 0) {
         errors.push({ field: prefix, code: "missing_options", message: "Select/radio field must have a non-empty options array" });
       } else if (!f.options.every((o: unknown) => typeof o === "string")) {
@@ -134,7 +134,7 @@ export function validateSubmission(
 
   for (const field of schema) {
     const value = data[field.id];
-    const missing = value === undefined || value === null || value === "";
+    const missing = value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0);
 
     // required check
     if (field.required && missing) {
@@ -213,8 +213,21 @@ export function validateSubmission(
       }
 
       case "checkbox": {
-        if (typeof value !== "boolean") {
-          errors.push({ field: field.id, code: "invalid_type", message: `${field.label} must be a boolean` });
+        if (field.options && field.options.length > 0) {
+          // checkbox group — value must be a non-empty array of valid options
+          if (!Array.isArray(value)) {
+            errors.push({ field: field.id, code: "invalid_type", message: `${field.label} must be an array` });
+            break;
+          }
+          const invalid = (value as unknown[]).filter((v) => typeof v !== "string" || !field.options!.includes(v as string));
+          if (invalid.length > 0) {
+            errors.push({ field: field.id, code: "invalid_option", message: `${field.label} contains invalid options` });
+          }
+        } else {
+          // single boolean checkbox
+          if (typeof value !== "boolean") {
+            errors.push({ field: field.id, code: "invalid_type", message: `${field.label} must be a boolean` });
+          }
         }
         break;
       }

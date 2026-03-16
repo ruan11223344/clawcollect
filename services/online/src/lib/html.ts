@@ -134,7 +134,20 @@ function renderField(f: FieldDefinition): string {
       `);
     }
 
-    case "checkbox":
+    case "checkbox": {
+      if (f.options && f.options.length > 0) {
+        // checkbox group (multi-select)
+        const cbOpts = f.options.map((o, i) => `
+        <div class="cc-checkbox-row">
+          <input type="checkbox" id="${id}_${i}" name="${esc(f.id)}" value="${esc(o)}">
+          <label for="${id}_${i}">${esc(o)}</label>
+        </div>`).join("");
+        return fieldWrap(f.id, `
+        <label class="cc-label">${esc(f.label)}${req}</label>
+        ${cbOpts}
+        <div class="cc-err" id="err_${esc(f.id)}"></div>
+      `);
+      }
       return fieldWrap(f.id, `
         <div class="cc-checkbox-row">
           <input type="checkbox" id="${id}" name="${esc(f.id)}"${f.required ? " required" : ""}>
@@ -142,6 +155,7 @@ function renderField(f: FieldDefinition): string {
         </div>
         <div class="cc-err" id="err_${esc(f.id)}"></div>
       `);
+    }
 
     case "date":
       return fieldWrap(f.id, `
@@ -334,6 +348,13 @@ function renderClientScript(data: FormPageData): string {
         if(checked) data[field.id] = checked.value;
         return;
       }
+      if(field.type === "checkbox" && field.options && field.options.length > 0){
+        var checkedBoxes = document.querySelectorAll('input[name="' + field.id + '"]:checked');
+        var vals = [];
+        checkedBoxes.forEach(function(cb){ vals.push(cb.value); });
+        if(vals.length > 0) data[field.id] = vals;
+        return;
+      }
       var el = document.getElementById("field_" + field.id);
       if(!el) return;
       if(field.type === "checkbox"){
@@ -410,6 +431,13 @@ function renderClientScript(data: FormPageData): string {
         }
         return;
       }
+      if(field.type === "checkbox" && field.options && field.options.length > 0){
+        var prevVals = (data && hasOwn(data, field.id) && Array.isArray(data[field.id])) ? data[field.id] : [];
+        document.querySelectorAll('input[name="' + field.id + '"]').forEach(function(cb){
+          cb.checked = prevVals.indexOf(cb.value) !== -1;
+        });
+        return;
+      }
       if(field.type === "checkbox"){
         el.checked = !!(data && hasOwn(data, field.id) && data[field.id]);
         return;
@@ -423,6 +451,9 @@ function renderClientScript(data: FormPageData): string {
   }
 
   function formatFieldValue(field, value){
+    if(field.type === "checkbox" && field.options && field.options.length > 0){
+      return Array.isArray(value) ? value.join(", ") : "";
+    }
     if(field.type === "checkbox") return value ? i18n.yes : i18n.no;
     if(value === undefined || value === null || value === "") return "";
     return String(value);
