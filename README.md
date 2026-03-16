@@ -29,19 +29,16 @@ The recommended product shape is `hosted by default`, with `self-hosted` availab
 
 ### OpenClaw plugin
 
-Install from a local checkout during development:
-
 ```bash
-cd /Users/ruanjunsen/project/clawcollect
-openclaw plugins install -l .
+openclaw plugins install @clawcollect/clawcollect
 openclaw plugins enable clawcollect
 openclaw daemon restart
 ```
 
-For a future community-plugin release, the intended install path is:
+For local development from a checkout:
 
 ```bash
-openclaw plugins install @clawcollect/clawcollect
+openclaw plugins install -l .
 openclaw plugins enable clawcollect
 openclaw daemon restart
 ```

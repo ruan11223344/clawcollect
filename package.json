@@ -1,7 +1,7 @@
 {
   "name": "@clawcollect/clawcollect",
   "version": "0.2.0",
-  "description": "Collect chat replies into checklists, group collections, and reminders for OpenClaw",
+  "description": "Hosted form collection bridge for OpenClaw",
   "type": "module",
   "main": "src/index.ts",
   "files": [
@@ -51,9 +51,9 @@
   "keywords": [
     "openclaw",
     "openclaw-plugin",
-    "checklist",
-    "reminder",
-    "group-collection",
+    "form",
+    "forms",
+    "survey",
     "clawcollect"
   ],
   "license": "MIT"
