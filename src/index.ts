@@ -23,7 +23,7 @@ const clawCollectPlugin = {
     registerClawCollectCommands(api, pluginConfig);
     api.registerTool(createClawCollectFormToolFactory(api, pluginConfig));
     api.on("before_prompt_build", async () => ({
-      prependSystemContext: CLAWCOLLECT_AGENT_GUIDANCE,
+      prependContext: CLAWCOLLECT_AGENT_GUIDANCE,
     }));
 
     api.logger.info("[clawcollect] loaded");
