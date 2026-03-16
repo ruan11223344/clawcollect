@@ -7,9 +7,9 @@
 
 // ── Types ────────────────────────────────────────────────────────────
 
-export type FieldType = "text" | "textarea" | "email" | "number" | "select" | "radio" | "checkbox" | "date" | "file";
+export type FieldType = "text" | "textarea" | "email" | "number" | "select" | "radio" | "checkbox" | "date" | "file" | "phone" | "rating";
 
-const FIELD_TYPES = new Set<string>(["text", "textarea", "email", "number", "select", "radio", "checkbox", "date", "file"]);
+const FIELD_TYPES = new Set<string>(["text", "textarea", "email", "number", "select", "radio", "checkbox", "date", "file", "phone", "rating"]);
 
 export interface FieldDefinition {
   id: string;
@@ -116,6 +116,7 @@ export function validateSchemaDefinition(schema: unknown): FieldError[] {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const PHONE_RE = /^(\+?\d[\d\s\-().]{6,19}\d)$/;
 
 /** Validate a submission payload against a form schema. */
 export function validateSubmission(
@@ -200,6 +201,29 @@ export function validateSubmission(
         }
         if (field.options && !field.options.includes(value)) {
           errors.push({ field: field.id, code: "invalid_option", message: `${field.label} must be one of: ${field.options.join(", ")}` });
+        }
+        break;
+      }
+
+      case "phone": {
+        if (typeof value !== "string") {
+          errors.push({ field: field.id, code: "invalid_type", message: `${field.label} must be a string` });
+          break;
+        }
+        if (!PHONE_RE.test(value.trim())) {
+          errors.push({ field: field.id, code: "invalid_phone", message: `${field.label} is not a valid phone number` });
+        }
+        break;
+      }
+
+      case "rating": {
+        if (typeof value !== "number" || !Number.isInteger(value)) {
+          errors.push({ field: field.id, code: "invalid_type", message: `${field.label} must be an integer` });
+          break;
+        }
+        const ratingMax = field.max ?? 5;
+        if (value < 1 || value > ratingMax) {
+          errors.push({ field: field.id, code: "out_of_range", message: `${field.label} must be between 1 and ${ratingMax}` });
         }
         break;
       }

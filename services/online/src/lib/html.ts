@@ -67,6 +67,10 @@ h2{font-size:1rem;font-weight:600;margin:0 0 12px}
 .cc-field input[type="file"]{width:100%;padding:8px 0;border:none;font-size:.9rem;cursor:pointer}
 .cc-upload-status{font-size:.82rem;color:#555;margin-top:4px;display:none}
 .cc-file-link{font-size:.85rem;color:#0066ff;word-break:break-all}
+.cc-rating{display:flex;gap:6px;flex-direction:row-reverse;justify-content:flex-end;margin-top:6px}
+.cc-rating input{display:none}
+.cc-rating label{font-size:1.8rem;color:#d0d0d0;cursor:pointer;transition:color .1s;line-height:1}
+.cc-rating input:checked~label,.cc-rating label:hover,.cc-rating label:hover~label{color:#f5a623}
 </style>
 </head>
 <body>
@@ -177,6 +181,27 @@ function renderField(f: FieldDefinition): string {
       `);
     }
 
+    case "phone":
+      return fieldWrap(f.id, `
+        <label for="${id}">${esc(f.label)}${req}</label>
+        <input type="tel" id="${id}" name="${esc(f.id)}" inputmode="tel"${f.required ? " required" : ""}>
+        <div class="cc-err" id="err_${esc(f.id)}"></div>
+      `);
+
+    case "rating": {
+      const maxStars = f.max ?? 5;
+      // Reverse order so CSS :checked ~ label trick works (rightmost = highest)
+      const stars = Array.from({ length: maxStars }, (_, i) => {
+        const val = maxStars - i;
+        return `<input type="radio" id="${id}_${val}" name="${esc(f.id)}" value="${val}"><label for="${id}_${val}" title="${val}">★</label>`;
+      }).join("");
+      return fieldWrap(f.id, `
+        <label class="cc-label">${esc(f.label)}${req}</label>
+        <div class="cc-rating">${stars}</div>
+        <div class="cc-err" id="err_${esc(f.id)}"></div>
+      `);
+    }
+
     case "file":
       return fieldWrap(f.id, `
         <label for="${id}">${esc(f.label)}${req}</label>
@@ -250,16 +275,16 @@ function renderClientScript(data: FormPageData): string {
   var lang = (navigator.language || "en").toLowerCase();
   var isChinese = lang.startsWith("zh");
   var I18N_MAP = {
-    zh: { submit:"提交", submitting:"提交中…", save:"保存修改", saving:"保存中…", fixErrors:"请检查以下错误后重新提交。", required:"此项为必填", submitted:"您的回答已提交，感谢配合！", editBtn:"修改回答", submittedTitle:"已提交的回答", selectPlaceholder:"— 请选择 —", noAnswers:"暂无回答内容。", uploading:"上传中…", uploadError:"上传失败，请重试", fileTooBig:"文件过大（最大 10 MB）", fileTypeBlocked:"不支持此文件类型", yes:"是", no:"否" },
-    ja: { submit:"送信", submitting:"送信中…", save:"変更を保存", saving:"保存中…", fixErrors:"以下のエラーを修正してください。", required:"この項目は必須です", submitted:"回答を送信しました。ありがとうございます！", editBtn:"回答を編集", submittedTitle:"送信済み回答", selectPlaceholder:"— 選択してください —", noAnswers:"回答が記録されませんでした。", uploading:"アップロード中…", uploadError:"アップロードに失敗しました", fileTooBig:"ファイルが大きすぎます（最大 10 MB）", fileTypeBlocked:"このファイル形式は許可されていません", yes:"はい", no:"いいえ" },
-    ko: { submit:"제출", submitting:"제출 중…", save:"변경 저장", saving:"저장 중…", fixErrors:"아래 오류를 수정해주세요.", required:"필수 입력 항목입니다", submitted:"답변이 제출되었습니다. 감사합니다！", editBtn:"답변 수정", submittedTitle:"제출된 답변", selectPlaceholder:"— 선택하세요 —", noAnswers:"기록된 답변이 없습니다.", uploading:"업로드 중…", uploadError:"업로드 실패, 다시 시도하세요", fileTooBig:"파일이 너무 큽니다 (최대 10 MB)", fileTypeBlocked:"허용되지 않는 파일 형식입니다", yes:"예", no:"아니오" },
-    es: { submit:"Enviar", submitting:"Enviando…", save:"Guardar cambios", saving:"Guardando…", fixErrors:"Por favor corrija los errores.", required:"Este campo es obligatorio", submitted:"Su respuesta ha sido enviada. ¡Gracias!", editBtn:"Editar respuesta", submittedTitle:"Respuesta enviada", selectPlaceholder:"— Seleccionar —", noAnswers:"No se capturaron respuestas.", uploading:"Subiendo…", uploadError:"Error al subir, intente de nuevo", fileTooBig:"Archivo demasiado grande (máx 10 MB)", fileTypeBlocked:"Tipo de archivo no permitido", yes:"Sí", no:"No" },
-    fr: { submit:"Envoyer", submitting:"Envoi en cours…", save:"Enregistrer", saving:"Enregistrement…", fixErrors:"Veuillez corriger les erreurs.", required:"Ce champ est obligatoire", submitted:"Votre réponse a été envoyée. Merci !", editBtn:"Modifier la réponse", submittedTitle:"Réponse soumise", selectPlaceholder:"— Sélectionner —", noAnswers:"Aucune réponse enregistrée.", uploading:"Téléversement…", uploadError:"Échec du téléversement, réessayez", fileTooBig:"Fichier trop volumineux (max 10 Mo)", fileTypeBlocked:"Type de fichier non autorisé", yes:"Oui", no:"Non" },
-    de: { submit:"Absenden", submitting:"Wird gesendet…", save:"Änderungen speichern", saving:"Speichern…", fixErrors:"Bitte korrigieren Sie die Fehler.", required:"Dieses Feld ist erforderlich", submitted:"Ihre Antwort wurde übermittelt. Danke!", editBtn:"Antwort bearbeiten", submittedTitle:"Gesendete Antwort", selectPlaceholder:"— Auswählen —", noAnswers:"Keine Antworten erfasst.", uploading:"Hochladen…", uploadError:"Upload fehlgeschlagen, erneut versuchen", fileTooBig:"Datei zu groß (max. 10 MB)", fileTypeBlocked:"Dateityp nicht erlaubt", yes:"Ja", no:"Nein" },
-    pt: { submit:"Enviar", submitting:"Enviando…", save:"Salvar alterações", saving:"Salvando…", fixErrors:"Corrija os erros abaixo.", required:"Este campo é obrigatório", submitted:"Sua resposta foi enviada. Obrigado!", editBtn:"Editar resposta", submittedTitle:"Resposta enviada", selectPlaceholder:"— Selecionar —", noAnswers:"Nenhuma resposta capturada.", uploading:"Enviando arquivo…", uploadError:"Falha no envio, tente novamente", fileTooBig:"Arquivo muito grande (máx 10 MB)", fileTypeBlocked:"Tipo de arquivo não permitido", yes:"Sim", no:"Não" },
-    ru: { submit:"Отправить", submitting:"Отправка…", save:"Сохранить", saving:"Сохранение…", fixErrors:"Исправьте ошибки ниже.", required:"Это поле обязательно", submitted:"Ваш ответ отправлен. Спасибо!", editBtn:"Изменить ответ", submittedTitle:"Отправленный ответ", selectPlaceholder:"— Выбрать —", noAnswers:"Ответы не записаны.", uploading:"Загрузка…", uploadError:"Ошибка загрузки, попробуйте снова", fileTooBig:"Файл слишком большой (макс. 10 МБ)", fileTypeBlocked:"Тип файла не разрешён", yes:"Да", no:"Нет" },
-    ar: { submit:"إرسال", submitting:"جارٍ الإرسال…", save:"حفظ التغييرات", saving:"جارٍ الحفظ…", fixErrors:"يرجى تصحيح الأخطاء أدناه.", required:"هذا الحقل مطلوب", submitted:"تم إرسال إجابتك. شكراً!", editBtn:"تعديل الإجابة", submittedTitle:"الإجابة المرسلة", selectPlaceholder:"— اختر —", noAnswers:"لم يتم تسجيل أي إجابات.", uploading:"جارٍ الرفع…", uploadError:"فشل الرفع، حاول مرة أخرى", fileTooBig:"الملف كبير جداً (الحد الأقصى 10 ميغابايت)", fileTypeBlocked:"نوع الملف غير مسموح به", yes:"نعم", no:"لا" },
-    en: { submit:"Submit", submitting:"Submitting…", save:"Save changes", saving:"Saving…", fixErrors:"Please fix the errors below.", required:"This field is required", submitted:"Your response has been submitted. Thank you!", editBtn:"Edit response", submittedTitle:"Submitted Response", selectPlaceholder:"— Select —", noAnswers:"No answers were captured.", uploading:"Uploading…", uploadError:"Upload failed, please try again", fileTooBig:"File too large (max 10 MB)", fileTypeBlocked:"File type not allowed", yes:"Yes", no:"No" }
+    zh: { submit:"提交", submitting:"提交中…", save:"保存修改", saving:"保存中…", fixErrors:"请检查以下错误后重新提交。", required:"此项为必填", submitted:"您的回答已提交，感谢配合！", editBtn:"修改回答", submittedTitle:"已提交的回答", selectPlaceholder:"— 请选择 —", noAnswers:"暂无回答内容。", uploading:"上传中…", uploadError:"上传失败，请重试", fileTooBig:"文件过大（最大 10 MB）", fileTypeBlocked:"不支持此文件类型", yes:"是", no:"否", invalidPhone:"请输入有效的手机号码", ratingLabel:"颗星" },
+    ja: { submit:"送信", submitting:"送信中…", save:"変更を保存", saving:"保存中…", fixErrors:"以下のエラーを修正してください。", required:"この項目は必須です", submitted:"回答を送信しました。ありがとうございます！", editBtn:"回答を編集", submittedTitle:"送信済み回答", selectPlaceholder:"— 選択してください —", noAnswers:"回答が記録されませんでした。", uploading:"アップロード中…", uploadError:"アップロードに失敗しました", fileTooBig:"ファイルが大きすぎます（最大 10 MB）", fileTypeBlocked:"このファイル形式は許可されていません", yes:"はい", no:"いいえ", invalidPhone:"有効な電話番号を入力してください", ratingLabel:"つ星" },
+    ko: { submit:"제출", submitting:"제출 중…", save:"변경 저장", saving:"저장 중…", fixErrors:"아래 오류를 수정해주세요.", required:"필수 입력 항목입니다", submitted:"답변이 제출되었습니다. 감사합니다！", editBtn:"답변 수정", submittedTitle:"제출된 답변", selectPlaceholder:"— 선택하세요 —", noAnswers:"기록된 답변이 없습니다.", uploading:"업로드 중…", uploadError:"업로드 실패, 다시 시도하세요", fileTooBig:"파일이 너무 큽니다 (최대 10 MB)", fileTypeBlocked:"허용되지 않는 파일 형식입니다", yes:"예", no:"아니오", invalidPhone:"유효한 전화번호를 입력하세요", ratingLabel:"점" },
+    es: { submit:"Enviar", submitting:"Enviando…", save:"Guardar cambios", saving:"Guardando…", fixErrors:"Por favor corrija los errores.", required:"Este campo es obligatorio", submitted:"Su respuesta ha sido enviada. ¡Gracias!", editBtn:"Editar respuesta", submittedTitle:"Respuesta enviada", selectPlaceholder:"— Seleccionar —", noAnswers:"No se capturaron respuestas.", uploading:"Subiendo…", uploadError:"Error al subir, intente de nuevo", fileTooBig:"Archivo demasiado grande (máx 10 MB)", fileTypeBlocked:"Tipo de archivo no permitido", yes:"Sí", no:"No", invalidPhone:"Ingrese un número de teléfono válido", ratingLabel:"estrellas" },
+    fr: { submit:"Envoyer", submitting:"Envoi en cours…", save:"Enregistrer", saving:"Enregistrement…", fixErrors:"Veuillez corriger les erreurs.", required:"Ce champ est obligatoire", submitted:"Votre réponse a été envoyée. Merci !", editBtn:"Modifier la réponse", submittedTitle:"Réponse soumise", selectPlaceholder:"— Sélectionner —", noAnswers:"Aucune réponse enregistrée.", uploading:"Téléversement…", uploadError:"Échec du téléversement, réessayez", fileTooBig:"Fichier trop volumineux (max 10 Mo)", fileTypeBlocked:"Type de fichier non autorisé", yes:"Oui", no:"Non", invalidPhone:"Veuillez entrer un numéro de téléphone valide", ratingLabel:"étoiles" },
+    de: { submit:"Absenden", submitting:"Wird gesendet…", save:"Änderungen speichern", saving:"Speichern…", fixErrors:"Bitte korrigieren Sie die Fehler.", required:"Dieses Feld ist erforderlich", submitted:"Ihre Antwort wurde übermittelt. Danke!", editBtn:"Antwort bearbeiten", submittedTitle:"Gesendete Antwort", selectPlaceholder:"— Auswählen —", noAnswers:"Keine Antworten erfasst.", uploading:"Hochladen…", uploadError:"Upload fehlgeschlagen, erneut versuchen", fileTooBig:"Datei zu groß (max. 10 MB)", fileTypeBlocked:"Dateityp nicht erlaubt", yes:"Ja", no:"Nein", invalidPhone:"Bitte geben Sie eine gültige Telefonnummer ein", ratingLabel:"Sterne" },
+    pt: { submit:"Enviar", submitting:"Enviando…", save:"Salvar alterações", saving:"Salvando…", fixErrors:"Corrija os erros abaixo.", required:"Este campo é obrigatório", submitted:"Sua resposta foi enviada. Obrigado!", editBtn:"Editar resposta", submittedTitle:"Resposta enviada", selectPlaceholder:"— Selecionar —", noAnswers:"Nenhuma resposta capturada.", uploading:"Enviando arquivo…", uploadError:"Falha no envio, tente novamente", fileTooBig:"Arquivo muito grande (máx 10 MB)", fileTypeBlocked:"Tipo de arquivo não permitido", yes:"Sim", no:"Não", invalidPhone:"Insira um número de telefone válido", ratingLabel:"estrelas" },
+    ru: { submit:"Отправить", submitting:"Отправка…", save:"Сохранить", saving:"Сохранение…", fixErrors:"Исправьте ошибки ниже.", required:"Это поле обязательно", submitted:"Ваш ответ отправлен. Спасибо!", editBtn:"Изменить ответ", submittedTitle:"Отправленный ответ", selectPlaceholder:"— Выбрать —", noAnswers:"Ответы не записаны.", uploading:"Загрузка…", uploadError:"Ошибка загрузки, попробуйте снова", fileTooBig:"Файл слишком большой (макс. 10 МБ)", fileTypeBlocked:"Тип файла не разрешён", yes:"Да", no:"Нет", invalidPhone:"Введите корректный номер телефона", ratingLabel:"звёзд" },
+    ar: { submit:"إرسال", submitting:"جارٍ الإرسال…", save:"حفظ التغييرات", saving:"جارٍ الحفظ…", fixErrors:"يرجى تصحيح الأخطاء أدناه.", required:"هذا الحقل مطلوب", submitted:"تم إرسال إجابتك. شكراً!", editBtn:"تعديل الإجابة", submittedTitle:"الإجابة المرسلة", selectPlaceholder:"— اختر —", noAnswers:"لم يتم تسجيل أي إجابات.", uploading:"جارٍ الرفع…", uploadError:"فشل الرفع، حاول مرة أخرى", fileTooBig:"الملف كبير جداً (الحد الأقصى 10 ميغابايت)", fileTypeBlocked:"نوع الملف غير مسموح به", yes:"نعم", no:"لا", invalidPhone:"أدخل رقم هاتف صالحاً", ratingLabel:"نجوم" },
+    en: { submit:"Submit", submitting:"Submitting…", save:"Save changes", saving:"Saving…", fixErrors:"Please fix the errors below.", required:"This field is required", submitted:"Your response has been submitted. Thank you!", editBtn:"Edit response", submittedTitle:"Submitted Response", selectPlaceholder:"— Select —", noAnswers:"No answers were captured.", uploading:"Uploading…", uploadError:"Upload failed, please try again", fileTooBig:"File too large (max 10 MB)", fileTypeBlocked:"File type not allowed", yes:"Yes", no:"No", invalidPhone:"Please enter a valid phone number", ratingLabel:"stars" }
   };
   var langPrefix = lang.split("-")[0];
   var i18n = I18N_MAP[langPrefix] || I18N_MAP["en"];
@@ -343,9 +368,11 @@ function renderClientScript(data: FormPageData): string {
         if(fileUrls[field.id]) data[field.id] = fileUrls[field.id];
         return;
       }
-      if(field.type === "radio"){
+      if(field.type === "radio" || field.type === "rating"){
         var checked = document.querySelector('input[name="' + field.id + '"]:checked');
-        if(checked) data[field.id] = checked.value;
+        if(checked){
+          data[field.id] = field.type === "rating" ? parseInt(checked.value, 10) : checked.value;
+        }
         return;
       }
       if(field.type === "checkbox" && field.options && field.options.length > 0){
@@ -424,7 +451,7 @@ function renderClientScript(data: FormPageData): string {
         }
         return;
       }
-      if(field.type === "radio"){
+      if(field.type === "radio" || field.type === "rating"){
         if(data && hasOwn(data, field.id) && data[field.id] !== null && data[field.id] !== undefined){
           var radioEl = document.querySelector('input[name="' + field.id + '"][value="' + String(data[field.id]).replace(/"/g, '\\"') + '"]');
           if(radioEl) radioEl.checked = true;
@@ -451,6 +478,9 @@ function renderClientScript(data: FormPageData): string {
   }
 
   function formatFieldValue(field, value){
+    if(field.type === "rating" && typeof value === "number"){
+      return "★".repeat(value) + "☆".repeat((field.max || 5) - value) + " (" + value + "/" + (field.max || 5) + ")";
+    }
     if(field.type === "checkbox" && field.options && field.options.length > 0){
       return Array.isArray(value) ? value.join(", ") : "";
     }
@@ -557,6 +587,7 @@ function renderClientScript(data: FormPageData): string {
 
   function localizeError(fe){
     if(fe.code === "required") return i18n.required;
+    if(fe.code === "invalid_phone") return i18n.invalidPhone;
     return fe.message;
   }
 
