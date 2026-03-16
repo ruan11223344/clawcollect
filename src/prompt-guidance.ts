@@ -19,11 +19,11 @@ When opening a form, ALWAYS design the questions yourself based on the user's in
 Example question design for "活动报名":
 - q1: text, "姓名", required: true
 - q2: email, "邮箱", required: true
-- q3: select, "出席方式", options: ["线下参加", "线上参加"], required: true
+- q3: radio, "出席方式", options: ["线下参加", "线上参加"], required: true
 - q4: textarea, "备注", required: false
 
 Example question design for "产品反馈":
-- q1: select, "您如何评价我们的产品？", options: ["非常满意", "满意", "一般", "不满意"], required: true
+- q1: radio, "您如何评价我们的产品？", options: ["非常满意", "满意", "一般", "不满意"], required: true
 - q2: textarea, "最喜欢哪个功能？", required: false
 - q3: textarea, "有什么需要改进的地方？", required: false
 - q4: text, "您的联系方式（选填）", required: false

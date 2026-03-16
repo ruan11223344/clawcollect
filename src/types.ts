@@ -1,4 +1,4 @@
-export type FormQuestionType = "text" | "textarea" | "select" | "checkbox" | "number" | "email" | "date";
+export type FormQuestionType = "text" | "textarea" | "radio" | "select" | "checkbox" | "number" | "email" | "date" | "file";
 
 export interface FormQuestion {
   id: string;

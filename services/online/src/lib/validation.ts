@@ -7,9 +7,9 @@
 
 // ── Types ────────────────────────────────────────────────────────────
 
-export type FieldType = "text" | "textarea" | "email" | "number" | "select" | "checkbox" | "date";
+export type FieldType = "text" | "textarea" | "email" | "number" | "select" | "radio" | "checkbox" | "date" | "file";
 
-const FIELD_TYPES = new Set<string>(["text", "textarea", "email", "number", "select", "checkbox", "date"]);
+const FIELD_TYPES = new Set<string>(["text", "textarea", "email", "number", "select", "radio", "checkbox", "date", "file"]);
 
 export interface FieldDefinition {
   id: string;
@@ -75,10 +75,10 @@ export function validateSchemaDefinition(schema: unknown): FieldError[] {
       errors.push({ field: prefix, code: "missing_label", message: "Field must have a non-empty label" });
     }
 
-    // select must have options
-    if (f.type === "select") {
+    // select/radio must have options
+    if (f.type === "select" || f.type === "radio") {
       if (!Array.isArray(f.options) || f.options.length === 0) {
-        errors.push({ field: prefix, code: "missing_options", message: "Select field must have a non-empty options array" });
+        errors.push({ field: prefix, code: "missing_options", message: "Select/radio field must have a non-empty options array" });
       } else if (!f.options.every((o: unknown) => typeof o === "string")) {
         errors.push({ field: prefix, code: "invalid_options", message: "All options must be strings" });
       }
