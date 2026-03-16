@@ -2,7 +2,7 @@ import type { AnyAgentTool, OpenClawPluginApi } from "openclaw/plugin-sdk";
 
 import { handleFormCommand } from "./commands.js";
 import { resolveToolScope } from "./scope.js";
-import type { ClawCollectPluginConfig } from "./types.js";
+import type { ClawCollectPluginConfig, FormQuestion } from "./types.js";
 
 function isConfigured(pluginConfig: ClawCollectPluginConfig): boolean {
   return !!(
@@ -61,11 +61,49 @@ export function createClawCollectFormToolFactory(
             type: "string",
             description: "The form title. Required when action is 'open'.",
           },
+          description: {
+            type: "string",
+            description: "Optional description shown at the top of the form.",
+          },
+          questions: {
+            type: "array",
+            description:
+              "Optional list of form questions. If omitted, a default schema is used. Design questions based on the user's intent before calling this tool.",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              required: ["id", "type", "label"],
+              properties: {
+                id: { type: "string", description: "Unique question identifier, e.g. 'q1'." },
+                type: {
+                  type: "string",
+                  enum: ["text", "textarea", "radio", "checkbox", "number", "email"],
+                  description: "Question input type.",
+                },
+                label: { type: "string", description: "The question text shown to respondents." },
+                required: { type: "boolean", description: "Whether the question must be answered." },
+                options: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Answer choices for radio or checkbox questions.",
+                },
+                placeholder: {
+                  type: "string",
+                  description: "Placeholder hint text for text/textarea/number/email questions.",
+                },
+              },
+            },
+          },
         },
         required: ["action"],
       },
       execute: async (_toolCallId, rawParams) => {
-        const params = rawParams as { action?: unknown; title?: unknown };
+        const params = rawParams as {
+          action?: unknown;
+          title?: unknown;
+          description?: unknown;
+          questions?: unknown;
+        };
         const action = typeof params.action === "string" ? params.action.trim() : "";
         const title = typeof params.title === "string" ? params.title.trim() : "";
 
@@ -90,8 +128,14 @@ export function createClawCollectFormToolFactory(
           );
         }
 
+        const description = typeof params.description === "string" ? params.description : undefined;
+        const questions = Array.isArray(params.questions) ? (params.questions as FormQuestion[]) : undefined;
+
         const args = action === "open" ? `open ${title}` : action;
-        const result = await handleFormCommand(pluginConfig, stateDir, scopeKey, args);
+        const result = await handleFormCommand(pluginConfig, stateDir, scopeKey, args, {
+          description,
+          questions,
+        });
         return toolReply(result.text);
       },
     };
