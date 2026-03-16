@@ -325,13 +325,17 @@ function renderClientScript(data: FormPageData): string {
   function collectData(){
     var data = {};
     schema.forEach(function(field){
-      var el = document.getElementById("field_" + field.id);
-      if(!el) return;
       if(field.type === "file"){
-        // Use the URL from a completed upload (or skip if not uploaded yet)
         if(fileUrls[field.id]) data[field.id] = fileUrls[field.id];
         return;
       }
+      if(field.type === "radio"){
+        var checked = document.querySelector('input[name="' + field.id + '"]:checked');
+        if(checked) data[field.id] = checked.value;
+        return;
+      }
+      var el = document.getElementById("field_" + field.id);
+      if(!el) return;
       if(field.type === "checkbox"){
         data[field.id] = !!el.checked;
         return;
@@ -396,6 +400,13 @@ function renderClientScript(data: FormPageData): string {
             statusEl.textContent = "\u2713 " + prevName;
             statusEl.style.display = "block";
           }
+        }
+        return;
+      }
+      if(field.type === "radio"){
+        if(data && hasOwn(data, field.id) && data[field.id] !== null && data[field.id] !== undefined){
+          var radioEl = document.querySelector('input[name="' + field.id + '"][value="' + String(data[field.id]).replace(/"/g, '\\"') + '"]');
+          if(radioEl) radioEl.checked = true;
         }
         return;
       }
