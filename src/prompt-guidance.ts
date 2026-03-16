@@ -28,6 +28,22 @@ Example question design for "产品反馈":
 - q3: textarea, "有什么需要改进的地方？", required: false
 - q4: text, "您的联系方式（选填）", required: false
 
+Example question design for "考试/测试卷" (exam or quiz):
+Always open with a student info section — separate fields for each piece of identity:
+- q0: text, "姓名", required: true
+- q1: text, "班级", required: true          ← NEVER merge 姓名+班级 into one field
+- q2: text, "学号", required: false         ← add if context mentions it
+Then one field per question, labelled with the question number and score weight:
+- q3: text,     "第1题（10分）……", required: true    ← short calculation → text
+- q4: textarea, "第2题（20分）……", required: true    ← show-work answer → textarea
+- q5: radio,    "第3题（10分）……", options: ["A. …", "B. …", "C. …", "D. …"], required: true  ← MCQ → radio
+- q6: checkbox, "第4题（10分）……", options: ["A. …", "B. …", "C. …"], required: true          ← multi-correct → checkbox with options
+Rules specific to exam forms:
+1. Put score weight in the label: "第2题（20分）".
+2. Short-answer / fill-in-the-blank → `text`. Long solution / show-your-work → `textarea`. Single-correct MCQ → `radio`. Multi-correct MCQ → `checkbox` with options array.
+3. Every question field is required: true.
+4. Never merge two questions into one field.
+
 Always tailor questions to the specific scenario — never reuse a generic template.
 Use the same language as the user's request. If the user writes in Chinese, all question labels, options, and the form title/description must be in Chinese.
 
