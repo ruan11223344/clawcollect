@@ -183,7 +183,7 @@ function renderField(f: FieldDefinition): string {
     case "idcard":
       return fieldWrap(f.id, `
         <label for="${id}">${esc(f.label)}${req}</label>
-        <input type="text" id="${id}" name="${esc(f.id)}" inputmode="numeric" autocomplete="off"${f.required ? " required" : ""}>
+        <input type="text" id="${id}" name="${esc(f.id)}" inputmode="text" autocomplete="off"${f.required ? " required" : ""}>
         ${hintHtml(f.hint)}<div class="cc-err" id="err_${esc(f.id)}"></div>
       `);
 
@@ -539,6 +539,8 @@ function renderClientScript(data: FormPageData): string {
       } else {
         el.value = "";
       }
+      // Trigger input event so listeners (e.g. textarea char counter) update
+      el.dispatchEvent(new Event("input"));
     });
   }
 
