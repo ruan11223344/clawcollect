@@ -663,7 +663,7 @@ const DEFAULT_ONLINE_SCHEMA = [
   { id: "response", type: "textarea", label: "Response", required: true },
 ];
 
-async function handleFormCommand(
+export async function handleFormCommand(
   pluginConfig: ClawCollectPluginConfig,
   stateDir: string,
   scopeKey: string,

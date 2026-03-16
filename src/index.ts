@@ -1,6 +1,7 @@
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 
 import { registerClawCollectCommands } from "./commands.js";
+import { createClawCollectFormToolFactory } from "./form-tool.js";
 import type { ClawCollectPluginConfig } from "./types.js";
 
 function resolvePluginConfig(raw: unknown): ClawCollectPluginConfig {
@@ -19,6 +20,7 @@ const clawCollectPlugin = {
     const pluginConfig = resolvePluginConfig(api.pluginConfig);
 
     registerClawCollectCommands(api, pluginConfig);
+    api.registerTool(createClawCollectFormToolFactory(api, pluginConfig));
 
     api.logger.info("[clawcollect] loaded");
   },
