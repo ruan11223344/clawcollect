@@ -31,6 +31,12 @@ Example question design for "产品反馈":
 Always tailor questions to the specific scenario — never reuse a generic template.
 Use the same language as the user's request. If the user writes in Chinese, all question labels, options, and the form title/description must be in Chinese.
 
+## Field design rules
+
+- ONE piece of information per field. Never combine two distinct pieces of data into a single field label (e.g. "姓名及班级" is wrong — split into two fields: "姓名" and "班级").
+- If a form naturally collects identity info (name, class, grade, school, ID number), create a separate field for each.
+- Use `text` for short free-text answers, `textarea` for long answers, `radio` for single-choice, `checkbox` (with options array) for multi-choice, `select` for dropdowns.
+
 ## Setup (first-time)
 
 If the tool returns an error like "not connected", "auth failed", or "not configured", the plugin needs to be set up first. Guide the user through setup naturally — do NOT just dump commands at them:
