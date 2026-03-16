@@ -35,7 +35,7 @@ h2{font-size:1rem;font-weight:600;margin:0 0 12px}
 .cc-field textarea{min-height:100px;resize:vertical}
 .cc-field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
 .cc-field input:focus,.cc-field textarea:focus,.cc-field select:focus{outline:none;border-color:#0066ff;box-shadow:0 0 0 3px rgba(0,102,255,.12)}
-.cc-field .cc-checkbox-row{display:flex;align-items:center;gap:8px}
+.cc-field .cc-checkbox-row,.cc-field .cc-radio-row{display:flex;align-items:center;gap:8px;margin-top:6px}
 .cc-field input[type="checkbox"]{width:18px;height:18px;accent-color:#0066ff;flex-shrink:0}
 .cc-field .cc-err{color:#e53935;font-size:.85rem;margin-top:4px;display:none}
 .cc-field.has-error input,.cc-field.has-error textarea,.cc-field.has-error select{border-color:#e53935}
@@ -124,7 +124,7 @@ function renderField(f: FieldDefinition): string {
       return fieldWrap(f.id, `
         <label for="${id}">${esc(f.label)}${req}</label>
         <select id="${id}" name="${esc(f.id)}"${f.required ? " required" : ""}>
-          <option value="">— Select —</option>
+          <option value="">— 请选择 —</option>
           ${opts}
         </select>
         <div class="cc-err" id="err_${esc(f.id)}"></div>
@@ -144,6 +144,26 @@ function renderField(f: FieldDefinition): string {
       return fieldWrap(f.id, `
         <label for="${id}">${esc(f.label)}${req}</label>
         <input type="date" id="${id}" name="${esc(f.id)}"${f.required ? " required" : ""}>
+        <div class="cc-err" id="err_${esc(f.id)}"></div>
+      `);
+
+    case "radio": {
+      const radioOpts = (f.options ?? []).map((o, i) => `
+        <div class="cc-radio-row">
+          <input type="radio" id="${id}_${i}" name="${esc(f.id)}" value="${esc(o)}"${f.required ? " required" : ""}>
+          <label for="${id}_${i}">${esc(o)}</label>
+        </div>`).join("");
+      return fieldWrap(f.id, `
+        <label class="cc-label">${esc(f.label)}${req}</label>
+        ${radioOpts}
+        <div class="cc-err" id="err_${esc(f.id)}"></div>
+      `);
+    }
+
+    case "file":
+      return fieldWrap(f.id, `
+        <label for="${id}">${esc(f.label)}${req}</label>
+        <input type="file" id="${id}" name="${esc(f.id)}"${f.required ? " required" : ""}>
         <div class="cc-err" id="err_${esc(f.id)}"></div>
       `);
 
@@ -176,12 +196,12 @@ function renderConfirmationSection(): string {
   <div id="cc-success" class="cc-confirmation">
     <div id="cc-success-banner" class="cc-alert cc-alert-success"></div>
     <div class="cc-summary">
-      <h2>Submitted Response</h2>
+      <h2 id="cc-submitted-title">已提交的回答</h2>
       <div id="cc-summary-list" class="cc-summary-list"></div>
     </div>
     <p id="cc-edit-note" class="cc-edit-note" style="display:none"></p>
     <div id="cc-success-actions" class="cc-confirmation-actions">
-      <button type="button" id="cc-edit-btn" class="cc-btn cc-btn-secondary">Edit response</button>
+      <button type="button" id="cc-edit-btn" class="cc-btn cc-btn-secondary">修改回答</button>
     </div>
   </div>`;
 }
@@ -207,8 +227,37 @@ function renderClientScript(data: FormPageData): string {
   var passwordInput = document.getElementById("cc-password");
   var schema = ${schemaJson};
   var submitUrl = ${JSON.stringify(data.submitUrl)};
+  var lang = (navigator.language || "en").toLowerCase();
+  var isChinese = lang.startsWith("zh");
+  var I18N_MAP = {
+    zh: { submit:"提交", submitting:"提交中…", save:"保存修改", saving:"保存中…", fixErrors:"请检查以下错误后重新提交。", required:"此项为必填", submitted:"您的回答已提交，感谢配合！", editBtn:"修改回答", submittedTitle:"已提交的回答", selectPlaceholder:"— 请选择 —", noAnswers:"暂无回答内容。" },
+    ja: { submit:"送信", submitting:"送信中…", save:"変更を保存", saving:"保存中…", fixErrors:"以下のエラーを修正してください。", required:"この項目は必須です", submitted:"回答を送信しました。ありがとうございます！", editBtn:"回答を編集", submittedTitle:"送信済み回答", selectPlaceholder:"— 選択してください —", noAnswers:"回答が記録されませんでした。" },
+    ko: { submit:"제출", submitting:"제출 중…", save:"변경 저장", saving:"저장 중…", fixErrors:"아래 오류를 수정해주세요.", required:"필수 입력 항목입니다", submitted:"답변이 제출되었습니다. 감사합니다！", editBtn:"답변 수정", submittedTitle:"제출된 답변", selectPlaceholder:"— 선택하세요 —", noAnswers:"기록된 답변이 없습니다." },
+    es: { submit:"Enviar", submitting:"Enviando…", save:"Guardar cambios", saving:"Guardando…", fixErrors:"Por favor corrija los errores.", required:"Este campo es obligatorio", submitted:"Su respuesta ha sido enviada. ¡Gracias!", editBtn:"Editar respuesta", submittedTitle:"Respuesta enviada", selectPlaceholder:"— Seleccionar —", noAnswers:"No se capturaron respuestas." },
+    fr: { submit:"Envoyer", submitting:"Envoi en cours…", save:"Enregistrer", saving:"Enregistrement…", fixErrors:"Veuillez corriger les erreurs.", required:"Ce champ est obligatoire", submitted:"Votre réponse a été envoyée. Merci !", editBtn:"Modifier la réponse", submittedTitle:"Réponse soumise", selectPlaceholder:"— Sélectionner —", noAnswers:"Aucune réponse enregistrée." },
+    de: { submit:"Absenden", submitting:"Wird gesendet…", save:"Änderungen speichern", saving:"Speichern…", fixErrors:"Bitte korrigieren Sie die Fehler.", required:"Dieses Feld ist erforderlich", submitted:"Ihre Antwort wurde übermittelt. Danke!", editBtn:"Antwort bearbeiten", submittedTitle:"Gesendete Antwort", selectPlaceholder:"— Auswählen —", noAnswers:"Keine Antworten erfasst." },
+    pt: { submit:"Enviar", submitting:"Enviando…", save:"Salvar alterações", saving:"Salvando…", fixErrors:"Corrija os erros abaixo.", required:"Este campo é obrigatório", submitted:"Sua resposta foi enviada. Obrigado!", editBtn:"Editar resposta", submittedTitle:"Resposta enviada", selectPlaceholder:"— Selecionar —", noAnswers:"Nenhuma resposta capturada." },
+    ru: { submit:"Отправить", submitting:"Отправка…", save:"Сохранить", saving:"Сохранение…", fixErrors:"Исправьте ошибки ниже.", required:"Это поле обязательно", submitted:"Ваш ответ отправлен. Спасибо!", editBtn:"Изменить ответ", submittedTitle:"Отправленный ответ", selectPlaceholder:"— Выбрать —", noAnswers:"Ответы не записаны." },
+    ar: { submit:"إرسال", submitting:"جارٍ الإرسال…", save:"حفظ التغييرات", saving:"جارٍ الحفظ…", fixErrors:"يرجى تصحيح الأخطاء أدناه.", required:"هذا الحقل مطلوب", submitted:"تم إرسال إجابتك. شكراً!", editBtn:"تعديل الإجابة", submittedTitle:"الإجابة المرسلة", selectPlaceholder:"— اختر —", noAnswers:"لم يتم تسجيل أي إجابات." },
+    en: { submit:"Submit", submitting:"Submitting…", save:"Save changes", saving:"Saving…", fixErrors:"Please fix the errors below.", required:"This field is required", submitted:"Your response has been submitted. Thank you!", editBtn:"Edit response", submittedTitle:"Submitted Response", selectPlaceholder:"— Select —", noAnswers:"No answers were captured." }
+  };
+  var langPrefix = lang.split("-")[0];
+  var i18n = I18N_MAP[langPrefix] || I18N_MAP["en"];
+  var isChinese = langPrefix === "zh";
   var editUrlBase = ${JSON.stringify(data.editUrlBase)};
   var mode = "create";
+
+  // Apply i18n to static elements
+  (function(){
+    var submitBtns = document.querySelectorAll("button[type=submit]");
+    submitBtns.forEach(function(b){ b.textContent = i18n.submit; });
+    var eb = document.getElementById("cc-edit-btn");
+    if(eb) eb.textContent = i18n.editBtn;
+    var st = document.getElementById("cc-submitted-title");
+    if(st) st.textContent = i18n.submittedTitle;
+    var sp = document.querySelectorAll("select option[value='']");
+    sp.forEach(function(o){ o.textContent = i18n.selectPlaceholder; });
+  })();
   var password = null;
   var requestInFlight = false;
   var submission = null;
@@ -318,7 +367,7 @@ function renderClientScript(data: FormPageData): string {
     });
 
     if(rows.length === 0){
-      rows.push('<div class="cc-summary-row"><div class="cc-summary-value">No answers were captured.</div></div>');
+      rows.push('<div class="cc-summary-row"><div class="cc-summary-value">' + i18n.noAnswers + '</div></div>');
     }
 
     summaryList.innerHTML = rows.join("");
@@ -330,10 +379,10 @@ function renderClientScript(data: FormPageData): string {
     if(!btn) return;
     btn.disabled = busy;
     if(mode === "edit"){
-      btn.textContent = busy ? "Saving…" : "Save changes";
+      btn.textContent = busy ? i18n.saving : i18n.save;
       return;
     }
-    btn.textContent = busy ? "Submitting…" : "Submit";
+    btn.textContent = busy ? i18n.submitting : i18n.submit;
   }
 
   function showConfirmation(message){
@@ -351,12 +400,12 @@ function renderClientScript(data: FormPageData): string {
         if(submission.editExpiresAt){
           var expiresAt = new Date(submission.editExpiresAt * 1000);
           if(!Number.isNaN(expiresAt.getTime())){
-            editNote.textContent = "You can edit this response until " + expiresAt.toLocaleString() + ".";
+            editNote.textContent = isChinese ? "您可以在 " + expiresAt.toLocaleString() + " 之前修改本次回答。" : "You can edit this response until " + expiresAt.toLocaleString() + ".";
           } else {
-            editNote.textContent = "You can edit this response from this device using the button below.";
+            editNote.textContent = isChinese ? "您可以通过下方按钮修改本次回答。" : "You can edit this response from this device using the button below.";
           }
         } else {
-          editNote.textContent = "You can edit this response from this device using the button below.";
+          editNote.textContent = isChinese ? "您可以通过下方按钮修改本次回答。" : "You can edit this response from this device using the button below.";
         }
         editNote.style.display = "block";
       } else {
@@ -389,7 +438,12 @@ function renderClientScript(data: FormPageData): string {
     if(!submission) return;
     submission.editToken = null;
     submission.editLockedMessage = message;
-    showConfirmation("Your response has been submitted. Thank you!");
+    showConfirmation(i18n.submitted);
+  }
+
+  function localizeError(fe){
+    if(fe.code === "required") return i18n.required;
+    return fe.message;
   }
 
   function handleValidationErrors(fieldErrors){
@@ -398,11 +452,11 @@ function renderClientScript(data: FormPageData): string {
       var errEl = document.getElementById("err_" + fe.field);
       if(wrap) wrap.classList.add("has-error");
       if(errEl){
-        errEl.textContent = fe.message;
+        errEl.textContent = localizeError(fe);
         errEl.style.display = "block";
       }
     });
-    showFormError("Please fix the errors below.");
+    showFormError(i18n.fixErrors);
   }
 
   if(editBtn){
@@ -473,7 +527,7 @@ function renderClientScript(data: FormPageData): string {
         editExpiresAt: result.body.edit_expires_at || null,
         editLockedMessage: null
         };
-        showConfirmation("Your response has been submitted. Thank you!");
+        showConfirmation(i18n.submitted);
         return;
       }
 
@@ -541,7 +595,7 @@ export function renderFormPage(data: FormPageData): string {
 
   <form id="cc-form" novalidate>
     ${fields}
-    <button type="submit" class="cc-btn">Submit</button>
+    <button type="submit" class="cc-btn">提交</button>
   </form>
 </div>
 
@@ -575,7 +629,7 @@ export function renderPasswordFormPage(data: FormPageData): string {
     ${renderConfirmationSection()}
     <form id="cc-form" novalidate>
       ${fields}
-      <button type="submit" class="cc-btn">Submit</button>
+      <button type="submit" class="cc-btn">提交</button>
     </form>
   </div>
 </div>
