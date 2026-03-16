@@ -1,3 +1,14 @@
+export type FormQuestionType = "text" | "textarea" | "select" | "checkbox" | "number" | "email" | "date";
+
+export interface FormQuestion {
+  id: string;
+  type: FormQuestionType;
+  label: string;
+  required?: boolean;
+  options?: string[]; // for radio / checkbox
+  placeholder?: string;
+}
+
 export type ChecklistItemStatus = "open" | "done";
 export type ReminderStatus = "pending" | "due" | "done";
 export type CollectionStatus = "open" | "closed";

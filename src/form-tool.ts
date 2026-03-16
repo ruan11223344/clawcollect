@@ -80,7 +80,7 @@ export function createClawCollectFormToolFactory(
                 id: { type: "string", description: "Unique question identifier, e.g. 'q1'." },
                 type: {
                   type: "string",
-                  enum: ["text", "textarea", "radio", "checkbox", "number", "email"],
+                  enum: ["text", "textarea", "select", "checkbox", "number", "email", "date"],
                   description: "Question input type.",
                 },
                 label: { type: "string", description: "The question text shown to respondents." },
