@@ -89,7 +89,7 @@ forms.get("/", async (c) => {
   const db = c.env.DB;
   const status = c.req.query("status"); // optional filter
 
-  let query = "SELECT id, title, description, status, responses_count, created_at, updated_at, closes_at FROM forms WHERE workspace_id = ?";
+  let query = "SELECT id, title, description, status, responses_count, max_responses, created_at, updated_at, closes_at FROM forms WHERE workspace_id = ?";
   const params: unknown[] = [auth.workspaceId];
 
   if (status) {

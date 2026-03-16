@@ -147,7 +147,13 @@ export function validateSubmission(
   }
 
   for (const field of schema) {
-    const value = data[field.id];
+    const raw = data[field.id];
+    // Trim string values before all checks so whitespace-only inputs are treated as empty
+    const value = typeof raw === "string" ? raw.trim() : raw;
+    if (typeof raw === "string" && raw !== value) {
+      // Store trimmed value back so downstream validation sees clean data
+      data[field.id] = value;
+    }
     const missing = value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0);
 
     // required check

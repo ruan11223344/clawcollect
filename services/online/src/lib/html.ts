@@ -422,7 +422,8 @@ function renderClientScript(data: FormPageData): string {
         if(el.value !== "") data[field.id] = parseFloat(el.value);
         return;
       }
-      if(el.value !== "") data[field.id] = el.value;
+      var trimmed = (field.type === "text" || field.type === "textarea" || field.type === "email" || field.type === "url" || field.type === "phone" || field.type === "idcard") ? el.value.trim() : el.value;
+      if(trimmed !== "") data[field.id] = trimmed;
     });
     return data;
   }
