@@ -47,6 +47,9 @@ export function createClawCollectFormToolFactory(
         "- See a text summary of all accepted responses (action: summary)",
         "- Close the form to stop accepting new responses (action: close)",
         "After opening a form, a public link is returned that anyone can use to submit responses.",
+        "IMPORTANT: When action is 'open', you MUST ALWAYS include the 'questions' array.",
+        "Design 4-8 questions appropriate for the user's purpose before calling this tool.",
+        "NEVER call with action=open without passing questions — the default 2-field schema is unacceptable.",
       ].join(" "),
       parameters: {
         type: "object",
@@ -68,7 +71,7 @@ export function createClawCollectFormToolFactory(
           questions: {
             type: "array",
             description:
-              "Optional list of form questions. If omitted, a default schema is used. Design questions based on the user's intent before calling this tool.",
+              "REQUIRED when action is 'open'. Always design and pass 4-8 questions based on the user's intent. NEVER omit this when opening a form.",
             items: {
               type: "object",
               additionalProperties: false,
