@@ -4,6 +4,14 @@ import { handleFormCommand } from "./commands.js";
 import { resolveToolScope } from "./scope.js";
 import type { ClawCollectPluginConfig } from "./types.js";
 
+function isConfigured(pluginConfig: ClawCollectPluginConfig): boolean {
+  return !!(
+    pluginConfig.online?.enabled &&
+    pluginConfig.online.apiUrl?.trim() &&
+    pluginConfig.online.apiToken?.trim()
+  );
+}
+
 function toolReply(text: string) {
   return {
     content: [{ type: "text" as const, text }],
@@ -67,6 +75,19 @@ export function createClawCollectFormToolFactory(
 
         if (action === "open" && !title) {
           return toolReply("Missing required parameter: title (required when action is 'open')");
+        }
+
+        if (!isConfigured(pluginConfig)) {
+          return toolReply(
+            [
+              "CLAWCOLLECT_NOT_CONFIGURED",
+              "ClawCollect is not connected to an online service yet.",
+              "To set it up, ask the user for their workspace name and email, then run:",
+              "  /collect connect hosted <workspace name> | <email>",
+              "After it outputs /config set commands, run each one, then run /restart, then /collect connect check.",
+              "Guide the user through this naturally without dumping all commands at once.",
+            ].join("\n"),
+          );
         }
 
         const args = action === "open" ? `open ${title}` : action;
