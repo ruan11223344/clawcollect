@@ -68,6 +68,9 @@ h2{font-size:1rem;font-weight:600;margin:0 0 12px}
 .cc-upload-status{font-size:.82rem;color:#555;margin-top:4px;display:none}
 .cc-file-link{font-size:.85rem;color:#0066ff;word-break:break-all}
 .cc-hint{font-size:.82rem;color:#888;margin-top:3px;margin-bottom:0}
+.cc-char-count{font-size:.78rem;color:#aaa;text-align:right;margin-top:2px}
+.cc-char-count.cc-near-limit{color:#f5a623}
+.cc-char-count.cc-at-limit{color:#e53935}
 .cc-rating{display:flex;gap:6px;flex-direction:row-reverse;justify-content:flex-end;margin-top:6px}
 .cc-rating input{display:none}
 .cc-rating label{font-size:1.8rem;color:#d0d0d0;cursor:pointer;transition:color .1s;line-height:1}
@@ -110,6 +113,7 @@ function renderField(f: FieldDefinition): string {
       return fieldWrap(f.id, `
         <label for="${id}">${esc(f.label)}${req}</label>
         <textarea id="${id}" name="${esc(f.id)}"${attr("minlength", f.minLength)}${attr("maxlength", f.maxLength)}${f.required ? " required" : ""}></textarea>
+        ${f.maxLength !== undefined ? `<div class="cc-char-count" id="cc_count_${esc(f.id)}">0 / ${f.maxLength}</div>` : ""}
         ${hintHtml(f.hint)}<div class="cc-err" id="err_${esc(f.id)}"></div>
       `);
 
@@ -448,12 +452,47 @@ function renderClientScript(data: FormPageData): string {
       });
   }
 
+  // Textarea character counters
+  schema.forEach(function(field){
+    if(field.type !== "textarea" || !field.maxLength) return;
+    var el = document.getElementById("field_" + field.id);
+    var countEl = document.getElementById("cc_count_" + field.id);
+    if(!el || !countEl) return;
+    function updateCount(){
+      var len = el.value.length;
+      var max = field.maxLength;
+      countEl.textContent = len + " / " + max;
+      countEl.className = "cc-char-count" + (len >= max ? " cc-at-limit" : len >= max * 0.9 ? " cc-near-limit" : "");
+    }
+    el.addEventListener("input", updateCount);
+    updateCount();
+  });
+
+  // When user selects a new file, clear the previously uploaded URL so stale data is not submitted
+  schema.forEach(function(field){
+    if(field.type !== "file") return;
+    var el = document.getElementById("field_" + field.id);
+    if(!el) return;
+    el.addEventListener("change", function(){
+      if(hasOwn(fileUrls, field.id)){
+        delete fileUrls[field.id];
+        var statusEl = document.getElementById("upload_status_" + field.id);
+        if(statusEl && el.files && el.files.length > 0){
+          statusEl.textContent = el.files[0].name;
+          statusEl.style.display = "block";
+        }
+      }
+    });
+  });
+
   function uploadPendingFiles(){
     var uploads = [];
     schema.forEach(function(field){
       if(field.type !== "file") return;
       var el = document.getElementById("field_" + field.id);
       if(!el || !el.files || el.files.length === 0) return;
+      // Skip if already uploaded (no new file selected since last upload)
+      if(hasOwn(fileUrls, field.id)) return;
       uploads.push(uploadFile(field, el.files[0]));
     });
     if(uploads.length === 0) return Promise.resolve([]);
@@ -519,6 +558,9 @@ function renderClientScript(data: FormPageData): string {
     if(field.type === "file" && value && typeof value === "string"){
       var name = decodeURIComponent(value.split("/").pop() || value);
       return '<a class="cc-file-link" href="' + escapeHtml(value) + '" target="_blank" rel="noopener">' + escapeHtml(name) + '</a>';
+    }
+    if(field.type === "url" && value && typeof value === "string"){
+      return '<a class="cc-file-link" href="' + escapeHtml(value) + '" target="_blank" rel="noopener">' + escapeHtml(value) + '</a>';
     }
     return escapeHtml(formatFieldValue(field, value));
   }
