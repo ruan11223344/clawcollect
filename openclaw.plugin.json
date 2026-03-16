@@ -2,7 +2,7 @@
   "id": "clawcollect",
   "name": "ClawCollect",
   "description": "Hosted form collection bridge for OpenClaw.",
-  "version": "0.2.0",
+  "version": "0.2.4",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
