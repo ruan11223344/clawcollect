@@ -183,6 +183,7 @@ pub.get("/:token", async (c) => {
     branding,
     submitUrl: `/f/${token}/submit`,
     editUrlBase: `/f/${token}/responses`,
+    uploadUrl: `/f/${token}/upload`,
   };
 
   const html = requiresPassword
@@ -303,6 +304,125 @@ pub.post("/:token/submit", async (c) => {
   }
 
   return c.json(response, 201);
+});
+
+// ── POST /f/:token/upload ─ Upload a file for a form field ────────
+pub.post("/:token/upload", async (c) => {
+  const db = c.env.DB;
+
+  const result = await validatePublicAccess(db, c.req.param("token"));
+  if (!result.ok) {
+    return c.json({ error: result.error }, result.status as 404);
+  }
+
+  const { form, workspaceId } = result;
+
+  if (!form.file_upload_enabled) {
+    return c.json({ error: "File upload is not enabled for this form" }, 403);
+  }
+
+  const uploadEntitlements = await getEntitlements(db, workspaceId);
+  if (!uploadEntitlements.file_upload_enabled) {
+    return c.json({ error: "File upload is not available on this plan" }, 403);
+  }
+
+  let fd: FormData;
+  try {
+    fd = await c.req.formData();
+  } catch {
+    return c.json({ error: "Invalid multipart body" }, 400);
+  }
+
+  const fileEntry = fd.get("file");
+  // Cloudflare Workers FormData returns File (a Blob subtype) or string
+  if (typeof fileEntry === "string" || fileEntry === null) {
+    return c.json({ error: "No file provided" }, 400);
+  }
+  // Cast to the Blob-compatible interface available in Workers
+  const file = fileEntry as unknown as { size: number; type: string; name: string; arrayBuffer(): Promise<ArrayBuffer> };
+
+  // Size limit: 10 MB
+  const MAX_BYTES = 10 * 1024 * 1024;
+  if (file.size > MAX_BYTES) {
+    return c.json({ error: "File too large (max 10 MB)" }, 413);
+  }
+  if (file.size === 0) {
+    return c.json({ error: "Empty file" }, 400);
+  }
+
+  // MIME type whitelist — block executables, scripts, HTML, etc.
+  const ALLOWED_MIME = new Set([
+    "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml", "image/bmp", "image/tiff",
+    "application/pdf",
+    "text/plain", "text/csv",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "application/zip", "application/x-zip-compressed",
+    "video/mp4", "video/webm", "video/quicktime",
+    "audio/mpeg", "audio/wav", "audio/ogg", "audio/webm",
+  ]);
+
+  const contentType = (file.type || "").trim().toLowerCase().split(";")[0].trim();
+  if (!contentType || !ALLOWED_MIME.has(contentType)) {
+    return c.json({ error: "File type not allowed" }, 415);
+  }
+
+  // Sanitize filename — keep only safe characters
+  const rawName = (file.name || "upload").slice(0, 255);
+  const safeName = rawName.replace(/[^\w.\-\u4e00-\u9fff\u3040-\u30ff]/g, "_").replace(/^\.+/, "_") || "upload";
+
+  // Unique key per upload — no guessable path
+  const fileId = generateId("fil");
+  const r2Key = `uploads/${form.id}/${fileId}/${safeName}`;
+
+  const bytes = await file.arrayBuffer();
+  await c.env.FILES.put(r2Key, bytes, {
+    httpMetadata: { contentType },
+    customMetadata: { formId: form.id, originalName: rawName },
+  });
+
+  const token = c.req.param("token");
+  const fileUrl = `/f/${token}/files/${fileId}/${encodeURIComponent(safeName)}`;
+
+  return c.json({ url: fileUrl, name: safeName, size: file.size }, 201);
+});
+
+// ── GET /f/:token/files/:fileId/:filename ─ Serve uploaded file ───
+pub.get("/:token/files/:fileId/:filename", async (c) => {
+  const db = c.env.DB;
+  const token = c.req.param("token");
+  const fileId = c.req.param("fileId");
+  const filename = c.req.param("filename");
+
+  // Only verify the link+form relationship exists — form status is irrelevant for
+  // already-uploaded files (closed/archived forms should still serve their files).
+  const link = await db
+    .prepare("SELECT form_id FROM form_links WHERE token = ? AND is_active = 1")
+    .bind(token)
+    .first<{ form_id: string }>();
+
+  if (!link) {
+    return c.json({ error: "Not found" }, 404);
+  }
+
+  const r2Key = `uploads/${link.form_id}/${fileId}/${filename}`;
+  const obj = await c.env.FILES.get(r2Key);
+  if (!obj) {
+    return c.json({ error: "File not found" }, 404);
+  }
+
+  const ct = obj.httpMetadata?.contentType ?? "application/octet-stream";
+  return new Response(obj.body, {
+    headers: {
+      "Content-Type": ct,
+      "Content-Disposition": `inline; filename="${filename}"`,
+      "Cache-Control": "private, max-age=86400",
+    },
+  });
 });
 
 // ── PUT /f/:token/responses/:responseId ─ Edit a response ───────────

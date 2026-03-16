@@ -3,7 +3,7 @@
  */
 export interface Env {
   DB: D1Database;
-  // FILES: R2Bucket;  // TODO: uncomment when file upload is implemented
+  FILES: R2Bucket;
   ENVIRONMENT: string;
   HOSTED_SIGNUP_ENABLED?: string;
   PADDLE_WEBHOOK_SECRET?: string;

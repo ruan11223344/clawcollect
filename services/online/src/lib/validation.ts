@@ -192,13 +192,22 @@ export function validateSubmission(
         break;
       }
 
-      case "select": {
+      case "select":
+      case "radio": {
         if (typeof value !== "string") {
           errors.push({ field: field.id, code: "invalid_type", message: `${field.label} must be a string` });
           break;
         }
         if (field.options && !field.options.includes(value)) {
           errors.push({ field: field.id, code: "invalid_option", message: `${field.label} must be one of: ${field.options.join(", ")}` });
+        }
+        break;
+      }
+
+      case "file": {
+        // Value is a URL string returned by the upload endpoint
+        if (typeof value !== "string" || !value.startsWith("/f/")) {
+          errors.push({ field: field.id, code: "invalid_type", message: `${field.label} must be a valid upload URL` });
         }
         break;
       }

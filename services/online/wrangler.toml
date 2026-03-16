@@ -33,7 +33,6 @@ migrations_dir = "migrations"
 pattern = "collect.dorapush.com"
 custom_domain = true
 
-# TODO: Uncomment when file upload is implemented
-# [[r2_buckets]]
-# binding = "FILES"
-# bucket_name = "clawcollect-files"
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "clawcollect-files"

@@ -51,13 +51,15 @@ forms.post("/", async (c) => {
     }
   }
 
+  const hasFileField = Array.isArray(body.schema) && (body.schema as { type?: unknown }[]).some((f) => f.type === "file");
+
   const now = nowEpoch();
   const formId = generateId("frm");
 
   await db
     .prepare(
       `INSERT INTO forms (id, workspace_id, created_by, title, description, schema, settings, status, file_upload_enabled, responses_count, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'draft', 0, 0, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'draft', ?, 0, ?, ?)`,
     )
     .bind(
       formId,
@@ -67,6 +69,7 @@ forms.post("/", async (c) => {
       body.description?.trim() ?? "",
       JSON.stringify(body.schema ?? []),
       JSON.stringify(body.settings ?? {}),
+      hasFileField ? 1 : 0,
       now,
       now,
     )
@@ -169,6 +172,9 @@ forms.patch("/:id", async (c) => {
   if (body.schema !== undefined) {
     sets.push("schema = ?");
     values.push(JSON.stringify(body.schema));
+    const hasFileField = (body.schema as { type?: unknown }[]).some((f) => f.type === "file");
+    sets.push("file_upload_enabled = ?");
+    values.push(hasFileField ? 1 : 0);
   }
   if (body.settings !== undefined) {
     sets.push("settings = ?");

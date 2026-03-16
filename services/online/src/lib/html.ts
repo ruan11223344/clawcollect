@@ -64,6 +64,9 @@ h2{font-size:1rem;font-weight:600;margin:0 0 12px}
 .cc-footer a{color:#999;text-decoration:underline}
 .cc-unknown{padding:10px 12px;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;font-size:.85rem;color:#795548}
 #cc-form-errors{display:none}
+.cc-field input[type="file"]{width:100%;padding:8px 0;border:none;font-size:.9rem;cursor:pointer}
+.cc-upload-status{font-size:.82rem;color:#555;margin-top:4px;display:none}
+.cc-file-link{font-size:.85rem;color:#0066ff;word-break:break-all}
 </style>
 </head>
 <body>
@@ -164,6 +167,7 @@ function renderField(f: FieldDefinition): string {
       return fieldWrap(f.id, `
         <label for="${id}">${esc(f.label)}${req}</label>
         <input type="file" id="${id}" name="${esc(f.id)}"${f.required ? " required" : ""}>
+        <div class="cc-upload-status" id="upload_status_${esc(f.id)}"></div>
         <div class="cc-err" id="err_${esc(f.id)}"></div>
       `);
 
@@ -189,6 +193,7 @@ export interface FormPageData {
   branding: boolean;
   submitUrl: string;
   editUrlBase: string;
+  uploadUrl: string;
 }
 
 function renderConfirmationSection(): string {
@@ -227,19 +232,20 @@ function renderClientScript(data: FormPageData): string {
   var passwordInput = document.getElementById("cc-password");
   var schema = ${schemaJson};
   var submitUrl = ${JSON.stringify(data.submitUrl)};
+  var uploadUrl = ${JSON.stringify(data.uploadUrl)};
   var lang = (navigator.language || "en").toLowerCase();
   var isChinese = lang.startsWith("zh");
   var I18N_MAP = {
-    zh: { submit:"提交", submitting:"提交中…", save:"保存修改", saving:"保存中…", fixErrors:"请检查以下错误后重新提交。", required:"此项为必填", submitted:"您的回答已提交，感谢配合！", editBtn:"修改回答", submittedTitle:"已提交的回答", selectPlaceholder:"— 请选择 —", noAnswers:"暂无回答内容。" },
-    ja: { submit:"送信", submitting:"送信中…", save:"変更を保存", saving:"保存中…", fixErrors:"以下のエラーを修正してください。", required:"この項目は必須です", submitted:"回答を送信しました。ありがとうございます！", editBtn:"回答を編集", submittedTitle:"送信済み回答", selectPlaceholder:"— 選択してください —", noAnswers:"回答が記録されませんでした。" },
-    ko: { submit:"제출", submitting:"제출 중…", save:"변경 저장", saving:"저장 중…", fixErrors:"아래 오류를 수정해주세요.", required:"필수 입력 항목입니다", submitted:"답변이 제출되었습니다. 감사합니다！", editBtn:"답변 수정", submittedTitle:"제출된 답변", selectPlaceholder:"— 선택하세요 —", noAnswers:"기록된 답변이 없습니다." },
-    es: { submit:"Enviar", submitting:"Enviando…", save:"Guardar cambios", saving:"Guardando…", fixErrors:"Por favor corrija los errores.", required:"Este campo es obligatorio", submitted:"Su respuesta ha sido enviada. ¡Gracias!", editBtn:"Editar respuesta", submittedTitle:"Respuesta enviada", selectPlaceholder:"— Seleccionar —", noAnswers:"No se capturaron respuestas." },
-    fr: { submit:"Envoyer", submitting:"Envoi en cours…", save:"Enregistrer", saving:"Enregistrement…", fixErrors:"Veuillez corriger les erreurs.", required:"Ce champ est obligatoire", submitted:"Votre réponse a été envoyée. Merci !", editBtn:"Modifier la réponse", submittedTitle:"Réponse soumise", selectPlaceholder:"— Sélectionner —", noAnswers:"Aucune réponse enregistrée." },
-    de: { submit:"Absenden", submitting:"Wird gesendet…", save:"Änderungen speichern", saving:"Speichern…", fixErrors:"Bitte korrigieren Sie die Fehler.", required:"Dieses Feld ist erforderlich", submitted:"Ihre Antwort wurde übermittelt. Danke!", editBtn:"Antwort bearbeiten", submittedTitle:"Gesendete Antwort", selectPlaceholder:"— Auswählen —", noAnswers:"Keine Antworten erfasst." },
-    pt: { submit:"Enviar", submitting:"Enviando…", save:"Salvar alterações", saving:"Salvando…", fixErrors:"Corrija os erros abaixo.", required:"Este campo é obrigatório", submitted:"Sua resposta foi enviada. Obrigado!", editBtn:"Editar resposta", submittedTitle:"Resposta enviada", selectPlaceholder:"— Selecionar —", noAnswers:"Nenhuma resposta capturada." },
-    ru: { submit:"Отправить", submitting:"Отправка…", save:"Сохранить", saving:"Сохранение…", fixErrors:"Исправьте ошибки ниже.", required:"Это поле обязательно", submitted:"Ваш ответ отправлен. Спасибо!", editBtn:"Изменить ответ", submittedTitle:"Отправленный ответ", selectPlaceholder:"— Выбрать —", noAnswers:"Ответы не записаны." },
-    ar: { submit:"إرسال", submitting:"جارٍ الإرسال…", save:"حفظ التغييرات", saving:"جارٍ الحفظ…", fixErrors:"يرجى تصحيح الأخطاء أدناه.", required:"هذا الحقل مطلوب", submitted:"تم إرسال إجابتك. شكراً!", editBtn:"تعديل الإجابة", submittedTitle:"الإجابة المرسلة", selectPlaceholder:"— اختر —", noAnswers:"لم يتم تسجيل أي إجابات." },
-    en: { submit:"Submit", submitting:"Submitting…", save:"Save changes", saving:"Saving…", fixErrors:"Please fix the errors below.", required:"This field is required", submitted:"Your response has been submitted. Thank you!", editBtn:"Edit response", submittedTitle:"Submitted Response", selectPlaceholder:"— Select —", noAnswers:"No answers were captured." }
+    zh: { submit:"提交", submitting:"提交中…", save:"保存修改", saving:"保存中…", fixErrors:"请检查以下错误后重新提交。", required:"此项为必填", submitted:"您的回答已提交，感谢配合！", editBtn:"修改回答", submittedTitle:"已提交的回答", selectPlaceholder:"— 请选择 —", noAnswers:"暂无回答内容。", uploading:"上传中…", uploadError:"上传失败，请重试", fileTooBig:"文件过大（最大 10 MB）", fileTypeBlocked:"不支持此文件类型", yes:"是", no:"否" },
+    ja: { submit:"送信", submitting:"送信中…", save:"変更を保存", saving:"保存中…", fixErrors:"以下のエラーを修正してください。", required:"この項目は必須です", submitted:"回答を送信しました。ありがとうございます！", editBtn:"回答を編集", submittedTitle:"送信済み回答", selectPlaceholder:"— 選択してください —", noAnswers:"回答が記録されませんでした。", uploading:"アップロード中…", uploadError:"アップロードに失敗しました", fileTooBig:"ファイルが大きすぎます（最大 10 MB）", fileTypeBlocked:"このファイル形式は許可されていません", yes:"はい", no:"いいえ" },
+    ko: { submit:"제출", submitting:"제출 중…", save:"변경 저장", saving:"저장 중…", fixErrors:"아래 오류를 수정해주세요.", required:"필수 입력 항목입니다", submitted:"답변이 제출되었습니다. 감사합니다！", editBtn:"답변 수정", submittedTitle:"제출된 답변", selectPlaceholder:"— 선택하세요 —", noAnswers:"기록된 답변이 없습니다.", uploading:"업로드 중…", uploadError:"업로드 실패, 다시 시도하세요", fileTooBig:"파일이 너무 큽니다 (최대 10 MB)", fileTypeBlocked:"허용되지 않는 파일 형식입니다", yes:"예", no:"아니오" },
+    es: { submit:"Enviar", submitting:"Enviando…", save:"Guardar cambios", saving:"Guardando…", fixErrors:"Por favor corrija los errores.", required:"Este campo es obligatorio", submitted:"Su respuesta ha sido enviada. ¡Gracias!", editBtn:"Editar respuesta", submittedTitle:"Respuesta enviada", selectPlaceholder:"— Seleccionar —", noAnswers:"No se capturaron respuestas.", uploading:"Subiendo…", uploadError:"Error al subir, intente de nuevo", fileTooBig:"Archivo demasiado grande (máx 10 MB)", fileTypeBlocked:"Tipo de archivo no permitido", yes:"Sí", no:"No" },
+    fr: { submit:"Envoyer", submitting:"Envoi en cours…", save:"Enregistrer", saving:"Enregistrement…", fixErrors:"Veuillez corriger les erreurs.", required:"Ce champ est obligatoire", submitted:"Votre réponse a été envoyée. Merci !", editBtn:"Modifier la réponse", submittedTitle:"Réponse soumise", selectPlaceholder:"— Sélectionner —", noAnswers:"Aucune réponse enregistrée.", uploading:"Téléversement…", uploadError:"Échec du téléversement, réessayez", fileTooBig:"Fichier trop volumineux (max 10 Mo)", fileTypeBlocked:"Type de fichier non autorisé", yes:"Oui", no:"Non" },
+    de: { submit:"Absenden", submitting:"Wird gesendet…", save:"Änderungen speichern", saving:"Speichern…", fixErrors:"Bitte korrigieren Sie die Fehler.", required:"Dieses Feld ist erforderlich", submitted:"Ihre Antwort wurde übermittelt. Danke!", editBtn:"Antwort bearbeiten", submittedTitle:"Gesendete Antwort", selectPlaceholder:"— Auswählen —", noAnswers:"Keine Antworten erfasst.", uploading:"Hochladen…", uploadError:"Upload fehlgeschlagen, erneut versuchen", fileTooBig:"Datei zu groß (max. 10 MB)", fileTypeBlocked:"Dateityp nicht erlaubt", yes:"Ja", no:"Nein" },
+    pt: { submit:"Enviar", submitting:"Enviando…", save:"Salvar alterações", saving:"Salvando…", fixErrors:"Corrija os erros abaixo.", required:"Este campo é obrigatório", submitted:"Sua resposta foi enviada. Obrigado!", editBtn:"Editar resposta", submittedTitle:"Resposta enviada", selectPlaceholder:"— Selecionar —", noAnswers:"Nenhuma resposta capturada.", uploading:"Enviando arquivo…", uploadError:"Falha no envio, tente novamente", fileTooBig:"Arquivo muito grande (máx 10 MB)", fileTypeBlocked:"Tipo de arquivo não permitido", yes:"Sim", no:"Não" },
+    ru: { submit:"Отправить", submitting:"Отправка…", save:"Сохранить", saving:"Сохранение…", fixErrors:"Исправьте ошибки ниже.", required:"Это поле обязательно", submitted:"Ваш ответ отправлен. Спасибо!", editBtn:"Изменить ответ", submittedTitle:"Отправленный ответ", selectPlaceholder:"— Выбрать —", noAnswers:"Ответы не записаны.", uploading:"Загрузка…", uploadError:"Ошибка загрузки, попробуйте снова", fileTooBig:"Файл слишком большой (макс. 10 МБ)", fileTypeBlocked:"Тип файла не разрешён", yes:"Да", no:"Нет" },
+    ar: { submit:"إرسال", submitting:"جارٍ الإرسال…", save:"حفظ التغييرات", saving:"جارٍ الحفظ…", fixErrors:"يرجى تصحيح الأخطاء أدناه.", required:"هذا الحقل مطلوب", submitted:"تم إرسال إجابتك. شكراً!", editBtn:"تعديل الإجابة", submittedTitle:"الإجابة المرسلة", selectPlaceholder:"— اختر —", noAnswers:"لم يتم تسجيل أي إجابات.", uploading:"جارٍ الرفع…", uploadError:"فشل الرفع، حاول مرة أخرى", fileTooBig:"الملف كبير جداً (الحد الأقصى 10 ميغابايت)", fileTypeBlocked:"نوع الملف غير مسموح به", yes:"نعم", no:"لا" },
+    en: { submit:"Submit", submitting:"Submitting…", save:"Save changes", saving:"Saving…", fixErrors:"Please fix the errors below.", required:"This field is required", submitted:"Your response has been submitted. Thank you!", editBtn:"Edit response", submittedTitle:"Submitted Response", selectPlaceholder:"— Select —", noAnswers:"No answers were captured.", uploading:"Uploading…", uploadError:"Upload failed, please try again", fileTooBig:"File too large (max 10 MB)", fileTypeBlocked:"File type not allowed", yes:"Yes", no:"No" }
   };
   var langPrefix = lang.split("-")[0];
   var i18n = I18N_MAP[langPrefix] || I18N_MAP["en"];
@@ -313,11 +319,19 @@ function renderClientScript(data: FormPageData): string {
     pwErr.style.display = "none";
   }
 
+  // fileUrls[fieldId] = uploaded URL (set after successful upload)
+  var fileUrls = {};
+
   function collectData(){
     var data = {};
     schema.forEach(function(field){
       var el = document.getElementById("field_" + field.id);
       if(!el) return;
+      if(field.type === "file"){
+        // Use the URL from a completed upload (or skip if not uploaded yet)
+        if(fileUrls[field.id]) data[field.id] = fileUrls[field.id];
+        return;
+      }
       if(field.type === "checkbox"){
         data[field.id] = !!el.checked;
         return;
@@ -331,10 +345,60 @@ function renderClientScript(data: FormPageData): string {
     return data;
   }
 
+  function uploadFile(field, file){
+    var statusEl = document.getElementById("upload_status_" + field.id);
+    if(statusEl){ statusEl.textContent = i18n.uploading; statusEl.style.display = "block"; }
+    var fd = new FormData();
+    fd.append("file", file);
+    return fetch(uploadUrl, { method: "POST", body: fd })
+      .then(parseResponse)
+      .then(function(result){
+        if(result.status === 201 && result.body.url){
+          fileUrls[field.id] = result.body.url;
+          if(statusEl){ statusEl.textContent = "\u2713 " + (result.body.name || file.name); statusEl.style.display = "block"; }
+          return { ok: true };
+        }
+        var msg = result.body.error || i18n.uploadError;
+        if(msg === "File too large (max 10 MB)") msg = i18n.fileTooBig;
+        if(msg === "File type not allowed") msg = i18n.fileTypeBlocked;
+        if(statusEl){ statusEl.textContent = msg; statusEl.style.display = "block"; }
+        return { ok: false, fieldId: field.id, message: msg };
+      })
+      .catch(function(){
+        if(statusEl){ statusEl.textContent = i18n.uploadError; statusEl.style.display = "block"; }
+        return { ok: false, fieldId: field.id, message: i18n.uploadError };
+      });
+  }
+
+  function uploadPendingFiles(){
+    var uploads = [];
+    schema.forEach(function(field){
+      if(field.type !== "file") return;
+      var el = document.getElementById("field_" + field.id);
+      if(!el || !el.files || el.files.length === 0) return;
+      uploads.push(uploadFile(field, el.files[0]));
+    });
+    if(uploads.length === 0) return Promise.resolve([]);
+    return Promise.all(uploads);
+  }
+
   function fillForm(data){
     schema.forEach(function(field){
       var el = document.getElementById("field_" + field.id);
       if(!el) return;
+      if(field.type === "file"){
+        // File inputs can't be set programmatically; preserve existing URL and show name
+        if(data && hasOwn(data, field.id) && data[field.id]){
+          fileUrls[field.id] = data[field.id];
+          var statusEl = document.getElementById("upload_status_" + field.id);
+          if(statusEl){
+            var prevName = decodeURIComponent(String(data[field.id]).split("/").pop() || "file");
+            statusEl.textContent = "\u2713 " + prevName;
+            statusEl.style.display = "block";
+          }
+        }
+        return;
+      }
       if(field.type === "checkbox"){
         el.checked = !!(data && hasOwn(data, field.id) && data[field.id]);
         return;
@@ -348,9 +412,17 @@ function renderClientScript(data: FormPageData): string {
   }
 
   function formatFieldValue(field, value){
-    if(field.type === "checkbox") return value ? "Yes" : "No";
+    if(field.type === "checkbox") return value ? i18n.yes : i18n.no;
     if(value === undefined || value === null || value === "") return "";
     return String(value);
+  }
+
+  function renderSummaryValue(field, value){
+    if(field.type === "file" && value && typeof value === "string"){
+      var name = decodeURIComponent(value.split("/").pop() || value);
+      return '<a class="cc-file-link" href="' + escapeHtml(value) + '" target="_blank" rel="noopener">' + escapeHtml(name) + '</a>';
+    }
+    return escapeHtml(formatFieldValue(field, value));
   }
 
   function renderSummary(data){
@@ -361,7 +433,7 @@ function renderClientScript(data: FormPageData): string {
       rows.push(
         '<div class="cc-summary-row">' +
           '<div class="cc-summary-label">' + escapeHtml(field.label) + '</div>' +
-          '<div class="cc-summary-value">' + escapeHtml(formatFieldValue(field, data[field.id])) + '</div>' +
+          '<div class="cc-summary-value">' + renderSummaryValue(field, data[field.id]) + '</div>' +
         '</div>'
       );
     });
@@ -493,84 +565,104 @@ function renderClientScript(data: FormPageData): string {
     resetErrors();
     clearPasswordError();
 
-    var data = collectData();
-    var method = "POST";
-    var url = submitUrl;
-    var payload;
-
-    if(mode === "edit" && submission && submission.id && submission.editToken){
-      method = "PUT";
-      url = editUrlBase + "/" + encodeURIComponent(submission.id);
-      payload = {edit_token: submission.editToken, data: data};
-    } else {
-      payload = {data: data};
-      if(password) payload.password = password;
-    }
-
     requestInFlight = true;
     setSubmitState(true);
 
-    fetch(url, {
-      method: method,
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(payload)
-    })
-    .then(parseResponse)
-    .then(function(result){
-      requestInFlight = false;
+    // Upload any pending file fields first, then submit
+    uploadPendingFiles().then(function(results){
+      // Check for upload failures
+      var uploadFailed = false;
+      (results || []).forEach(function(r){
+        if(!r.ok){
+          var wrap = document.querySelector('[data-field="' + r.fieldId + '"]');
+          var errEl = document.getElementById("err_" + r.fieldId);
+          if(wrap) wrap.classList.add("has-error");
+          if(errEl){ errEl.textContent = r.message; errEl.style.display = "block"; }
+          uploadFailed = true;
+        }
+      });
 
-      if(method === "POST" && result.status === 201){
-        submission = {
-          id: result.body.id,
-          data: data,
-        editToken: result.body.edit_token || null,
-        editExpiresAt: result.body.edit_expires_at || null,
-        editLockedMessage: null
-        };
-        showConfirmation(i18n.submitted);
-        return;
+      if(uploadFailed){
+        requestInFlight = false;
+        setSubmitState(false);
+        showFormError(i18n.fixErrors);
+        return Promise.resolve(null);
       }
 
-      if(method === "PUT" && result.status === 200){
-        submission.data = data;
-        submission.editLockedMessage = null;
-        showConfirmation("Your response has been updated.");
-        return;
+      var data = collectData();
+      var method = "POST";
+      var url = submitUrl;
+      var payload;
+
+      if(mode === "edit" && submission && submission.id && submission.editToken){
+        method = "PUT";
+        url = editUrlBase + "/" + encodeURIComponent(submission.id);
+        payload = {edit_token: submission.editToken, data: data};
+      } else {
+        payload = {data: data};
+        if(password) payload.password = password;
       }
 
-      setSubmitState(false);
+      return fetch(url, {
+        method: method,
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      }).then(parseResponse).then(function(result){
+        requestInFlight = false;
 
-      if(method === "POST" && (result.body.error === "Password required" || result.body.error === "Invalid password")){
-        if(formSection) formSection.style.display = "none";
-        if(pwSection) pwSection.style.display = "block";
-        if(passwordInput) passwordInput.value = "";
-        password = null;
-        mode = "create";
-        showPasswordError(result.body.error === "Invalid password" ? "Incorrect password. Please try again." : "Password required.");
-        return;
-      }
+        if(method === "POST" && result.status === 201){
+          submission = {
+            id: result.body.id,
+            data: data,
+            editToken: result.body.edit_token || null,
+            editExpiresAt: result.body.edit_expires_at || null,
+            editLockedMessage: null
+          };
+          showConfirmation(i18n.submitted);
+          return;
+        }
 
-      if(method === "PUT" && (
-        result.body.error === "Edit window has expired" ||
-        result.body.error === "Invalid edit token" ||
-        result.body.error === "This response is not editable" ||
-        result.body.error === "This form does not allow response editing" ||
-        result.body.error === "Response not found"
-      )){
-        lockEditing(
-          result.body.error === "Edit window has expired"
-            ? "The edit window has expired. Your saved response is shown below."
-            : "This response can no longer be edited."
-        );
-        return;
-      }
+        if(method === "PUT" && result.status === 200){
+          submission.data = data;
+          submission.editLockedMessage = null;
+          showConfirmation("Your response has been updated.");
+          return;
+        }
 
-      if(result.body.error === "validation_failed" && result.body.field_errors){
-        handleValidationErrors(result.body.field_errors);
-        return;
-      }
+        setSubmitState(false);
 
-      showFormError(result.body.error || "Something went wrong. Please try again.");
+        if(method === "POST" && (result.body.error === "Password required" || result.body.error === "Invalid password")){
+          if(formSection) formSection.style.display = "none";
+          if(pwSection) pwSection.style.display = "block";
+          if(passwordInput) passwordInput.value = "";
+          password = null;
+          mode = "create";
+          showPasswordError(result.body.error === "Invalid password" ? "Incorrect password. Please try again." : "Password required.");
+          return;
+        }
+
+        if(method === "PUT" && (
+          result.body.error === "Edit window has expired" ||
+          result.body.error === "Invalid edit token" ||
+          result.body.error === "This response is not editable" ||
+          result.body.error === "This form does not allow response editing" ||
+          result.body.error === "Response not found"
+        )){
+          lockEditing(
+            result.body.error === "Edit window has expired"
+              ? "The edit window has expired. Your saved response is shown below."
+              : "This response can no longer be edited."
+          );
+          return;
+        }
+
+        if(result.body.error === "validation_failed" && result.body.field_errors){
+          handleValidationErrors(result.body.field_errors);
+          return;
+        }
+
+        showFormError(result.body.error || "Something went wrong. Please try again.");
+      });
     })
     .catch(function(){
       requestInFlight = false;
