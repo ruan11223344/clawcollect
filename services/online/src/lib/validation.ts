@@ -7,15 +7,16 @@
 
 // ── Types ────────────────────────────────────────────────────────────
 
-export type FieldType = "text" | "textarea" | "email" | "number" | "select" | "radio" | "checkbox" | "date" | "file" | "phone" | "rating";
+export type FieldType = "text" | "textarea" | "email" | "number" | "select" | "radio" | "checkbox" | "date" | "time" | "file" | "phone" | "idcard" | "rating";
 
-const FIELD_TYPES = new Set<string>(["text", "textarea", "email", "number", "select", "radio", "checkbox", "date", "file", "phone", "rating"]);
+const FIELD_TYPES = new Set<string>(["text", "textarea", "email", "number", "select", "radio", "checkbox", "date", "time", "file", "phone", "idcard", "rating"]);
 
 export interface FieldDefinition {
   id: string;
   type: FieldType;
   label: string;
   required?: boolean;
+  hint?: string;
   minLength?: number;
   maxLength?: number;
   min?: number;
@@ -116,7 +117,18 @@ export function validateSchemaDefinition(schema: unknown): FieldError[] {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_RE = /^\d{2}:\d{2}$/;
 const PHONE_RE = /^(\+?\d[\d\s\-().]{6,19}\d)$/;
+// Chinese mainland ID (18-digit with checksum) — used as default when no pattern is set
+const CN_IDCARD_RE = /^\d{17}[\dX]$/i;
+const IDCARD_WEIGHTS = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
+const IDCARD_CHECK = ["1", "0", "X", "9", "8", "7", "6", "5", "4", "3", "2"];
+function isValidCnIdCard(id: string): boolean {
+  const upper = id.toUpperCase();
+  if (!CN_IDCARD_RE.test(upper)) return false;
+  const sum = IDCARD_WEIGHTS.reduce((acc, w, i) => acc + w * parseInt(upper[i], 10), 0);
+  return IDCARD_CHECK[sum % 11] === upper[17];
+}
 
 /** Validate a submission payload against a form schema. */
 export function validateSubmission(
@@ -263,6 +275,46 @@ export function validateSubmission(
         }
         if (!DATE_RE.test(value)) {
           errors.push({ field: field.id, code: "invalid_date", message: `${field.label} must be in YYYY-MM-DD format` });
+        }
+        break;
+      }
+
+      case "time": {
+        if (typeof value !== "string") {
+          errors.push({ field: field.id, code: "invalid_type", message: `${field.label} must be a string` });
+          break;
+        }
+        if (!TIME_RE.test(value)) {
+          errors.push({ field: field.id, code: "invalid_time", message: `${field.label} must be in HH:MM format` });
+          break;
+        }
+        const [h, m] = value.split(":").map(Number);
+        if (h > 23 || m > 59) {
+          errors.push({ field: field.id, code: "invalid_time", message: `${field.label} is not a valid time` });
+        }
+        break;
+      }
+
+      case "idcard": {
+        if (typeof value !== "string") {
+          errors.push({ field: field.id, code: "invalid_type", message: `${field.label} must be a string` });
+          break;
+        }
+        const idVal = value.trim();
+        if (field.pattern) {
+          // Region-specific pattern provided by form designer (e.g. HK, TW, passport)
+          try {
+            if (!new RegExp(field.pattern).test(idVal)) {
+              errors.push({ field: field.id, code: "invalid_idcard", message: `${field.label} format is invalid` });
+            }
+          } catch {
+            // Invalid regex — skip pattern check
+          }
+        } else {
+          // Default: Chinese mainland 18-digit ID with checksum
+          if (!isValidCnIdCard(idVal)) {
+            errors.push({ field: field.id, code: "invalid_idcard", message: `${field.label} is not a valid ID card number` });
+          }
         }
         break;
       }

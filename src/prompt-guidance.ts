@@ -91,6 +91,37 @@ Example question design for "信息采集 / 用户注册":
 - q5: date,  "出生日期", required: false
 - q6: select, "所在城市", options: ["北京","上海","广州","深圳","成都","杭州","其他"], required: true
 
+Example question design for "健康/医疗问卷":
+- q1: text,  "姓名", required: true
+- q2: radio, "性别", options: ["男","女"], required: true
+- q3: number, "年龄", required: true
+- q4: phone, "联系电话", required: true
+- q5: checkbox, "目前有哪些不适症状？（可多选）", options: ["发烧","咳嗽","头痛","乏力","腹泻","无症状"], required: true
+- q6: radio, "症状持续时间", options: ["1天以内","2–3天","4–7天","一周以上"], required: true
+- q7: radio, "是否有过敏史？", options: ["有","无","不确定"], required: true
+- q8: textarea, "既往病史或用药情况（如有请注明）", required: false, hint: "如高血压、糖尿病等慢性病，或长期服用药物请填写"
+
+Example question design for "内部申请（请假 / 报销 / 采购）":
+- q1: text,  "申请人姓名", required: true
+- q2: text,  "所在部门", required: true
+- q3: radio, "申请类型", options: ["请假","报销","采购申请","其他"], required: true
+- q4: date,  "申请日期", required: true
+- q5: date,  "开始日期（适用请假）", required: false
+- q6: date,  "结束日期（适用请假）", required: false
+- q7: number, "金额（元，适用报销/采购）", required: false
+- q8: textarea, "申请事由及详情", required: true
+- q9: file,  "附件（发票/采购清单/医疗证明等）", required: false
+
+Example question design for "课程 / 培训报名":
+- q1: text,  "姓名", required: true
+- q2: text,  "所在单位 / 学校", required: true
+- q3: phone, "手机号", required: true
+- q4: email, "邮箱（用于接收确认通知）", required: true
+- q5: radio, "报名课程", options: ["入门班","进阶班","高级班"], required: true
+- q6: radio, "上课方式", options: ["线下","线上直播","录播回看"], required: true
+- q7: select, "如何得知本次课程？", options: ["朋友推荐","公众号","微信群","搜索引擎","其他"], required: false
+- q8: textarea, "学习目标或备注", required: false
+
 Always tailor questions to the specific scenario — never reuse a generic template.
 Use the same language as the user's request. If the user writes in Chinese, all question labels, options, and the form title/description must be in Chinese.
 
@@ -98,9 +129,14 @@ Use the same language as the user's request. If the user writes in Chinese, all 
 
 - ONE piece of information per field. Never combine two distinct pieces of data into a single field label (e.g. "姓名及班级" is wrong — split into two fields: "姓名" and "班级").
 - If a form naturally collects identity info (name, class, grade, school, ID number), create a separate field for each.
-- Use `text` for short free-text answers, `textarea` for long answers, `radio` for single-choice, `checkbox` (with options array) for multi-choice, `select` for dropdowns, `phone` for phone numbers, `rating` (with optional `max`) for star ratings, `date` for date pickers, `file` for attachments.
-- When the form involves a phone number, always use `phone` type — never `text`. It validates format and shows the correct mobile keyboard.
+- Use `text` for short free-text answers, `textarea` for long answers, `radio` for single-choice, `checkbox` (with options array) for multi-choice, `select` for dropdowns, `phone` for phone numbers, `rating` (with optional `max`) for star ratings, `date` for date pickers, `time` for time pickers, `file` for attachments.
+- Use `idcard` for ID card / passport number fields. For Chinese mainland ID omit `pattern` (uses 18-digit checksum). For other regions set `pattern` to the appropriate regex (e.g. HK: `"^[A-Z]{1,2}\\d{6}(\\(\\d\\))?$"`).
+- When the form involves a phone number, always use `phone` type — never `text`.
 - When collecting satisfaction / rating, always use `rating` type — never a text field or a radio with numbers.
+- When a field needs guidance text (e.g. format hint, what to fill in), add a `hint` property: `hint: "如：138xxxx8888"`. Keep hints concise.
+- For forms with a specific thank-you message (e.g. "报名成功！工作人员3天内联系您"), set `settings.submit_message` when calling clawcollect_form.
+- For appointment/booking forms, use both `date` and `time` fields (or `radio` for fixed time slots).
+- For internal OA forms (leave/expense), use `date` for start/end dates and `file` for supporting documents.
 
 ## Setup (first-time)
 

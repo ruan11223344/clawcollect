@@ -302,6 +302,9 @@ pub.post("/:token/submit", async (c) => {
     response.edit_token = editToken;
     response.edit_expires_at = editExpiresAt;
   }
+  if (typeof settings.submit_message === "string" && settings.submit_message.trim()) {
+    response.submit_message = settings.submit_message.trim();
+  }
 
   return c.json(response, 201);
 });
